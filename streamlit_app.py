@@ -1,7 +1,3 @@
-#st.title("🎈 My new app")
-#st.write(
-#    "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
-#)
 import streamlit as st
 import random
 import numpy as np
@@ -114,6 +110,8 @@ def get_placements(owner, glyph_type, shape, dist, prio, board):
     return positions
 
 def resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner):
+    if defender_type == 'wall':
+        return 'wall', None
     if attacker_type == defender_type:
         if attacker_type == 'd':
             return 'wall', None
@@ -325,7 +323,17 @@ with st.sidebar:
 
 if page == 'Main':
     board_str = '\n'.join(' '.join(row) for row in game_state['board'])
-    st.markdown(f'<pre style="white-space: pre; overflow-x: auto;">{board_str}</pre>', unsafe_allow_html=True)
+    # Updated display with fixed dimensions and styles to prevent wrapping and ensure square-ish appearance
+    st.markdown(
+        f"""
+        <div style="overflow: auto; border: 1px solid #ccc; padding: 10px; width: 400px; height: 400px;">
+            <pre style="font-family: monospace; font-size: 10px; line-height: 10px; white-space: pre; margin: 0;">
+{board_str}
+            </pre>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     if not game_state['stage_started']:
         if st.button('Start Next Stage'):
             start_stage(game_state)
@@ -380,7 +388,17 @@ if page == 'Main':
                     for px, py in positions:
                         preview_board[px, py] = selected_glyph.upper()
                     preview_str = '\n'.join(' '.join(row) for row in preview_board)
-                    st.markdown(f'<pre style="white-space: pre; overflow-x: auto;">Preview:\n{preview_str}</pre>', unsafe_allow_html=True)
+                    st.markdown(
+                        f"""
+                        <div style="overflow: auto; border: 1px solid #ccc; padding: 10px; width: 400px; height: 400px;">
+                            <pre style="font-family: monospace; font-size: 10px; line-height: 10px; white-space: pre; margin: 0;">
+Preview:
+{preview_str}
+                            </pre>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
                 if st.button('Commit'):
                     player_positions = get_placements('player', selected_glyph, selected_shape, selected_dist, selected_prio, game_state['board'])
                     game_state['pre_collision_player'] = player_positions
@@ -388,7 +406,7 @@ if page == 'Main':
                     choice_hash = int(hashlib.sha256(player_choice.encode()).hexdigest(), 16)
                     stage_seed = game_state['stage_seed']
                     current_turn = game_state['current_turn']
-                    turn_seed = int(hashlib.sha256(str(stage_seed) + str(current_turn) + str(choice_hash).encode()).hexdigest(), 16) % 10**10
+                    turn_seed = int(hashlib.sha256((str(stage_seed) + str(current_turn) + str(choice_hash)).encode()).hexdigest(), 16) % 10**10
                     random.seed(turn_seed)
                     pc_glyph = random.choice(list('abcdef'))
                     pc_shapes = pc_glyphs[pc_glyph].get_unlocked_shapes()
@@ -409,28 +427,27 @@ if page == 'Main':
                         new_placements[tuple(p)].append(('pc', pc_glyph))
                     for pos, incoming in new_placements.items():
                         x, y = pos
-                        existing_type = board[x, y]
+                        existing_type = board[x, y] if board[x, y] != '.' else None
                         existing_owner = owners[x, y]
-                        if existing_type == '.':
-                            existing_type = None
-                            existing_owner = None
-                        # Resolve incoming
+                        # Resolve incoming first if multiple
                         current_type = None
                         current_owner = None
                         special_f = False
                         if len(incoming) == 1:
                             current_owner, current_type = incoming[0]
                         else:
-                            current_type = incoming[0][1]
-                            current_owner = incoming[0][0]
-                            for next_owner, next_type in incoming[1:]:
-                                new_type, new_owner = resolve_collision(next_type, next_owner, current_type, current_owner)
+                            # Resolve between incoming
+                            attacker_owner, attacker_type = incoming[0]
+                            for defender_owner, defender_type in incoming[1:]:
+                                new_type, new_owner = resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner)
                                 if new_type is None:
-                                    if next_type == 'f' and current_type == 'f':
+                                    if attacker_type == 'f' and defender_type == 'f':
                                         special_f = True
                                     current_type = None
                                     break
-                                current_type, current_owner = new_type, new_owner
+                                attacker_type, attacker_owner = new_type, new_owner
+                            current_type = attacker_type
+                            current_owner = attacker_owner
                         if current_type is None:
                             if special_f:
                                 # Handle 3x3 type c
@@ -439,15 +456,13 @@ if page == 'Main':
                                         nx, ny = x + dx, y + dy
                                         if 0 <= nx < 19 and 0 <= ny < 19 and board[nx, ny] == '.':
                                             board[nx, ny] = 'c'
-                                            owners[nx, ny] = current_owner  # or attacker?
+                                            owners[nx, ny] = current_owner  # or random? Assume last attacker
                             continue
-                        if existing_type is None:
-                            board[x, y] = current_type
-                            owners[x, y] = current_owner
-                        else:
-                            new_type, new_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
-                            if new_type is None and current_type == 'f' and existing_type == 'f':
-                                # Handle 3x3
+                        # Now resolve with existing
+                        if existing_type is not None:
+                            current_type, current_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
+                        if current_type is None:
+                            if existing_type == 'f' and (existing_type == 'f' or current_type == 'f'):  # Check for f collision with existing
                                 board[x, y] = '.'
                                 owners[x, y] = None
                                 for dx in range(-1, 2):
@@ -457,8 +472,11 @@ if page == 'Main':
                                             board[nx, ny] = 'c'
                                             owners[nx, ny] = current_owner
                             else:
-                                board[x, y] = new_type if new_type else '.'
-                                owners[x, y] = new_owner
+                                board[x, y] = '.'
+                                owners[x, y] = None
+                        else:
+                            board[x, y] = current_type
+                            owners[x, y] = current_owner
                     capture_groups(board, owners)
                     occupied = np.sum(board != '.') / 361
                     if occupied > 0.8:
@@ -474,13 +492,31 @@ if page == 'Main':
             for px, py in game_state['pre_collision_player']:
                 temp_board[px, py] = game_state['selected_glyph'].upper()
             temp_str = '\n'.join(' '.join(row) for row in temp_board)
-            st.markdown(f'<pre style="white-space: pre; overflow-x: auto;">{temp_str}</pre>', unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div style="overflow: auto; border: 1px solid #ccc; padding: 10px; width: 400px; height: 400px;">
+                    <pre style="font-family: monospace; font-size: 10px; line-height: 10px; white-space: pre; margin: 0;">
+{temp_str}
+                    </pre>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         if st.button('Show PC Pre-Collision'):
             temp_board = game_state['board'].copy()
             for px, py in game_state['pre_collision_pc']:
                 temp_board[px, py] = 'X'  # Placeholder for PC
             temp_str = '\n'.join(' '.join(row) for row in temp_board)
-            st.markdown(f'<pre style="white-space: pre; overflow-x: auto;">{temp_str}</pre>', unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div style="overflow: auto; border: 1px solid #ccc; padding: 10px; width: 400px; height: 400px;">
+                    <pre style="font-family: monospace; font-size: 10px; line-height: 10px; white-space: pre; margin: 0;">
+{temp_str}
+                    </pre>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         if st.button('Show Post-Collision'):
             # Main board is post
             pass
