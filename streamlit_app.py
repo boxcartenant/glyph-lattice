@@ -319,7 +319,7 @@ with st.sidebar:
     if upload:
         loaded_state = json.load(upload)
         st.session_state.game_state = loaded_state
-        st.experimental_rerun()
+        st.rerun()
 
 if page == 'Main':
     board_str = '\n'.join(' '.join(row) for row in game_state['board'])
@@ -337,12 +337,12 @@ if page == 'Main':
     if not game_state['stage_started']:
         if st.button('Start Next Stage'):
             start_stage(game_state)
-            st.experimental_rerun()
+            st.rerun()
         if game_state['losses'] == 5:
             if st.button('Change Seed'):
                 game_state['stage_seed'] = random.randint(0, 10**10)
                 game_state['losses'] = 0
-                st.experimental_rerun()
+                st.rerun()
     else:
         glyphs = game_state['glyphs']
         pc_glyphs = game_state['pc_glyphs']
@@ -484,7 +484,7 @@ Preview:
                     else:
                         game_state['current_turn'] += 1
                         game_state['hand'] = None
-                    st.experimental_rerun()
+                    st.rerun()
     # Buttons for pre/post views
     if game_state['pre_collision_player']:
         if st.button('Show Player Pre-Collision'):
@@ -560,7 +560,7 @@ elif page == 'Tech Tree':
                     'downside': downside
                 })
             game_state['upgrade_options'] = options
-            st.experimental_rerun()
+            st.rerun()
     else:
         st.write("Select one upgrade option:")
         for idx, opt in enumerate(upgrade_options):
@@ -574,4 +574,4 @@ elif page == 'Tech Tree':
                     d_g, d_r, d_b, d_u = opt['downside']
                     glyphs[d_g].trees[d_r][d_b].remove(d_u)
                 game_state['upgrade_options'] = None
-                st.experimental_rerun()
+                st.rerun()
