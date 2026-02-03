@@ -110,6 +110,32 @@ def get_placements(owner, glyph_type, shape, dist, prio, board):
             positions.append((random.randint(0, 18), random.randint(0, 18)))
     return positions
 
+def get_shape_curve(shape, prio):
+    if shape == 'cardinal':
+        if prio == 'N':
+            x_vals = np.linspace(0, 18, 100)
+            y_vals = np.zeros(100)
+        elif prio == 'S':
+            x_vals = np.linspace(0, 18, 100)
+            y_vals = np.full(100, 18)
+        elif prio == 'E':
+            x_vals = np.full(100, 18)
+            y_vals = np.linspace(0, 18, 100)
+        elif prio == 'W':
+            x_vals = np.zeros(100)
+            y_vals = np.linspace(0, 18, 100)
+        else:
+            x_vals = np.linspace(0, 18, 100)
+            y_vals = np.linspace(0, 18, 100)  # placeholder
+    else:
+        # Placeholder curve, e.g., a wave
+        x_vals = np.linspace(0, 18, 100)
+        if prio == 'S':
+            y_vals = 18 - 4 * np.abs(np.sin(x_vals / 3))  # arcs near bottom
+        else:
+            y_vals = 9 + 4 * np.sin(x_vals / 3)
+    return x_vals, y_vals
+
 def resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner):
     if defender_type == 'wall':
         return 'wall', None
