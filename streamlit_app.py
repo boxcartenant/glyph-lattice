@@ -366,9 +366,11 @@ if page == 'Main':
             margin: 10px 0;
         }
         .game-board div {
+            aspect-ratio: 1 / 1;
             display: flex;
             align-items: center;
             justify-content: center;
+            line-height: 0;
             font-family: 'Courier New', monospace;
             border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
             font-size: 1.2rem;
