@@ -4,6 +4,7 @@ import numpy as np
 import json
 import hashlib
 from collections import defaultdict
+import matplotlib.pyplot as plt
 
 # Define possible upgrades for each root and branch
 possible_upgrades = {
@@ -399,6 +400,19 @@ Preview:
                         """,
                         unsafe_allow_html=True
                     )
+                if st.button('Preview Graph'):
+                    # Get curve for shape
+                    x_vals, y_vals = get_shape_curve(selected_shape, selected_prio)
+                    fig, ax = plt.subplots(figsize=(4, 4))
+                    ax.plot(x_vals, [18 - y for y in y_vals], 'b-')
+                    ax.set_xlim(0, 18)
+                    ax.set_ylim(0, 18)
+                    ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+                    ax.set_xticks(range(19))
+                    ax.set_yticks(range(19))
+                    ax.set_yticklabels([str(18 - tick) for tick in range(19)])
+                    ax.set_aspect('equal')
+                    st.pyplot(fig)
                 if st.button('Commit'):
                     player_positions = get_placements('player', selected_glyph, selected_shape, selected_dist, selected_prio, game_state['board'])
                     game_state['pre_collision_player'] = player_positions
