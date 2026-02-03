@@ -356,21 +356,22 @@ if page == 'Main':
     # We use aspect-ratio: 1 / 1 to ensure the board stays square
     grid_style = """
     <style>
-        .mini-board {
+        .game-board {
             display: grid;
             grid-template-columns: repeat(19, 1fr);
-            width: 200px; 
+            width: 80%;
+            max-width: 300px; /* Adjust based on your preference */
             aspect-ratio: 1 / 1;
-            border: 1px solid #888;
+            border: 1px solid #333;
+            margin: 10px 0;
         }
-        .mini-board div {
+        .game-board div {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8px;
-            font-family: monospace;
-            /* Subtle grid lines that work in light/dark mode */
-            border: 0.1px solid rgba(128, 128, 128, 0.2);
+            font-family: 'Courier New', monospace;
+            border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
+            font-size: 1.2rem;
         }
     </style>
     """
