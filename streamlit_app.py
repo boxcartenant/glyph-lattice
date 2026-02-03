@@ -349,18 +349,38 @@ with st.sidebar:
         st.rerun()
 
 if page == 'Main':
-    board_str = '\n'.join(' '.join(row) for row in game_state['board'])
-    # Updated display with fixed dimensions and styles to prevent wrapping and ensure square-ish appearance
-    st.markdown(
-        f"""
-        <div style="overflow: auto; border: 1px solid #ccc; padding: 10px; width: 400px; height: 400px;">
-            <pre style="font-family: monospace; font-size: 10px; line-height: 10px; white-space: pre; margin: 0;">
-{board_str}
-            </pre>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # 1. Flatten the NumPy array and wrap each element in a <div>
+    # This creates 361 small div containers
+    cells_html = "".join([f"<div>{char}</div>" for char in st.session_state.game_state['board'].flatten()])
+    # 2. Define the styling
+    # We use aspect-ratio: 1 / 1 to ensure the board stays square
+    grid_style = """
+    <style>
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(19, 1fr);
+            width: 100%;
+            max-width: 500px; /* Adjust based on your preference */
+            aspect-ratio: 1 / 1;
+            background-color: #DEB887; /* Burlywood/Wood feel for Go/Board games */
+            border: 2px solid #333;
+            margin: 10px 0;
+        }
+        .game-board div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
+            font-size: 1.2rem;
+        }
+    </style>
+    """
+    # 3. Render
+    st.markdown(grid_style, unsafe_allow_html=True)
+    st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
+    
     if not game_state['stage_started']:
         if st.button('Start Next Stage'):
             start_stage(game_state)
