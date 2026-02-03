@@ -434,18 +434,37 @@ if page == 'Main':
                     preview_board = game_state['board'].copy()
                     for px, py in positions:
                         preview_board[px, py] = selected_glyph.upper()
-                    preview_str = '\n'.join(' '.join(row) for row in preview_board)
-                    st.markdown(
-                        f"""
-                        <div style="overflow: auto; border: 1px solid #ccc; padding: 10px; width: 400px; height: 400px;">
-                            <pre style="font-family: monospace; font-size: 10px; line-height: 10px; white-space: pre; margin: 0;">
-Preview:
-{preview_str}
-                            </pre>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
+                    # 1. Flatten the NumPy array and wrap each element in a <div>
+                    # This creates 361 small div containers
+                    cells_html = "".join([f"<div>{char}</div>" for char in preview_board.flatten()])
+                    # 2. Define the styling
+                    # We use aspect-ratio: 1 / 1 to ensure the board stays square
+                    grid_style = """
+                    <style>
+                        .game-board {
+                            display: grid;
+                            grid-template-columns: repeat(19, 1fr);
+                            width: 80%;
+                            max-width: 300px; /* Adjust based on your preference */
+                            aspect-ratio: 1 / 1;
+                            border: 1px solid #333;
+                            margin: 10px 0;
+                        }
+                        .game-board div {
+                            aspect-ratio: 1 / 1;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            line-height: 0;
+                            font-family: 'Courier New', monospace;
+                            border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
+                            font-size: 1.2rem;
+                        }
+                    </style>
+                    """
+                    # 3. Render
+                    st.markdown(grid_style, unsafe_allow_html=True)
+                    st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
                 if st.button('Preview Graph'):
                     # Get curve for shape
                     x_vals, y_vals = get_shape_curve(selected_shape, selected_prio)
@@ -551,32 +570,72 @@ Preview:
             temp_board = game_state['board'].copy()
             for px, py in game_state['pre_collision_player']:
                 temp_board[px, py] = game_state['selected_glyph'].upper()
-            temp_str = '\n'.join(' '.join(row) for row in temp_board)
-            st.markdown(
-                f"""
-                <div style="overflow: auto; border: 1px solid #ccc; padding: 10px; width: 400px; height: 400px;">
-                    <pre style="font-family: monospace; font-size: 10px; line-height: 10px; white-space: pre; margin: 0;">
-{temp_str}
-                    </pre>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            # 1. Flatten the NumPy array and wrap each element in a <div>
+            # This creates 361 small div containers
+            cells_html = "".join([f"<div>{char}</div>" for char in temp_board.flatten()])
+            # 2. Define the styling
+            # We use aspect-ratio: 1 / 1 to ensure the board stays square
+            grid_style = """
+            <style>
+                .game-board {
+                    display: grid;
+                    grid-template-columns: repeat(19, 1fr);
+                    width: 80%;
+                    max-width: 300px; /* Adjust based on your preference */
+                    aspect-ratio: 1 / 1;
+                    border: 1px solid #333;
+                    margin: 10px 0;
+                }
+                .game-board div {
+                    aspect-ratio: 1 / 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    line-height: 0;
+                    font-family: 'Courier New', monospace;
+                    border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
+                    font-size: 1.2rem;
+                }
+            </style>
+            """
+            # 3. Render
+            st.markdown(grid_style, unsafe_allow_html=True)
+            st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
         if st.button('Show PC Pre-Collision'):
             temp_board = game_state['board'].copy()
             for px, py in game_state['pre_collision_pc']:
                 temp_board[px, py] = 'X'  # Placeholder for PC
-            temp_str = '\n'.join(' '.join(row) for row in temp_board)
-            st.markdown(
-                f"""
-                <div style="overflow: auto; border: 1px solid #ccc; padding: 10px; width: 400px; height: 400px;">
-                    <pre style="font-family: monospace; font-size: 10px; line-height: 10px; white-space: pre; margin: 0;">
-{temp_str}
-                    </pre>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            # 1. Flatten the NumPy array and wrap each element in a <div>
+            # This creates 361 small div containers
+            cells_html = "".join([f"<div>{char}</div>" for char in temp_board.flatten()])
+            # 2. Define the styling
+            # We use aspect-ratio: 1 / 1 to ensure the board stays square
+            grid_style = """
+            <style>
+                .game-board {
+                    display: grid;
+                    grid-template-columns: repeat(19, 1fr);
+                    width: 80%;
+                    max-width: 300px; /* Adjust based on your preference */
+                    aspect-ratio: 1 / 1;
+                    border: 1px solid #333;
+                    margin: 10px 0;
+                }
+                .game-board div {
+                    aspect-ratio: 1 / 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    line-height: 0;
+                    font-family: 'Courier New', monospace;
+                    border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
+                    font-size: 1.2rem;
+                }
+            </style>
+            """
+            # 3. Render
+            st.markdown(grid_style, unsafe_allow_html=True)
+            st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
         if st.button('Show Post-Collision'):
             # Main board is post
             pass
