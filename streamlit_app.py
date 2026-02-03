@@ -113,27 +113,30 @@ def get_placements(owner, glyph_type, shape, dist, prio, board):
 def get_shape_curve(shape, prio):
     if shape == 'cardinal':
         if prio == 'N':
-            x_vals = np.linspace(0, 18, 100)
-            y_vals = np.zeros(100)
+            x_vals = np.linspace(0.5, 18.5, 100)
+            y_vals = np.full(100, 0.5)      # Center of top row
         elif prio == 'S':
-            x_vals = np.linspace(0, 18, 100)
-            y_vals = np.full(100, 18)
+            x_vals = np.linspace(0.5, 18.5, 100)
+            y_vals = np.full(100, 18.5)     # Center of bottom row
         elif prio == 'E':
-            x_vals = np.full(100, 18)
-            y_vals = np.linspace(0, 18, 100)
+            x_vals = np.full(100, 18.5)
+            y_vals = np.linspace(0.5, 18.5, 100)
         elif prio == 'W':
-            x_vals = np.zeros(100)
-            y_vals = np.linspace(0, 18, 100)
+            x_vals = np.full(100, 0.5)
+            y_vals = np.linspace(0.5, 18.5, 100)
         else:
-            x_vals = np.linspace(0, 18, 100)
-            y_vals = np.linspace(0, 18, 100)  # placeholder
+            # Default diagonal for other priorities
+            x_vals = np.linspace(0.5, 18.5, 100)
+            y_vals = np.linspace(0.5, 18.5, 100)
     else:
-        # Placeholder curve, e.g., a wave
-        x_vals = np.linspace(0, 18, 100)
+        # Placeholder for other shapes (e.g. trig wave)
+        x_vals = np.linspace(0.5, 18.5, 200)
         if prio == 'S':
-            y_vals = 18 - 4 * np.abs(np.sin(x_vals / 3))  # arcs near bottom
+            y_vals = 18.5 - 4 * np.abs(np.sin(x_vals * np.pi / 9))  # arcs near bottom
+        elif prio == 'N':
+            y_vals = 0.5 + 4 * np.abs(np.sin(x_vals * np.pi / 9))
         else:
-            y_vals = 9 + 4 * np.sin(x_vals / 3)
+            y_vals = 9 + 4 * np.sin(x_vals * np.pi / 9)  # centered wave
     return x_vals, y_vals
 
 def resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner):
