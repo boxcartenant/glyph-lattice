@@ -360,11 +360,9 @@ if page == 'Main':
             display: grid;
             grid-template-columns: repeat(19, 1fr);
             width: 100%;
-            max-width: 500px; /* Adjust based on your preference */
+            max-width: 200px; /* Adjust based on your preference */
             aspect-ratio: 1 / 1;
-            background-color: #DEB887; /* Burlywood/Wood feel for Go/Board games */
-            border: 2px solid #333;
-            margin: 10px 0;
+            border: 1px solid #333;
         }
         .game-board div {
             display: flex;
