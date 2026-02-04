@@ -86,58 +86,71 @@ class TechTree:
         return []
 
 # Functions for game logic
-def get_placements(owner, glyph_type, shape, dist, prio, board):
-    positions = []
-    if shape == 'cardinal' and dist == 'random' and prio in ['N', 'S', 'E', 'W']:
+def calculate_shape(shape, prio, seed=None):
+    if seed is not None:
+        random.seed(seed)
+    if shape == 'cardinal':
+        t_min, t_max = 0, 18
         if prio == 'N':
-            y = 0
+            f = lambda t: (0.5 + t, 0.5)
         elif prio == 'S':
-            y = 18
-        elif prio == 'E':
-            x = 18
+            f = lambda t: (0.5 + t, 18.5)
         elif prio == 'W':
-            x = 0
-        if prio in ['N', 'S']:
-            path = [(y, i) for i in range(19)]
+            f = lambda t: (0.5, 0.5 + t)
+        elif prio == 'E':
+            f = lambda t: (18.5, 0.5 + t)
         else:
-            path = [(i, x) for i in range(19)]
-        indices = np.arange(19)
-        chosen = np.random.choice(indices, size=8, replace=False)
-        positions = [path[idx] for idx in chosen]
+            f = lambda t: (0.5 + t, 0.5 + t)  # placeholder diagonal
     else:
-        # Placeholder for other shapes/dist/prio
-        for _ in range(8):
-            positions.append((random.randint(0, 18), random.randint(0, 18)))
-    return positions
+        # Placeholder for trig, assume cosine
+        t_min, t_max = 0, 18
+        if prio == 'S':
+            f = lambda t: (0.5 + t, 18.5 - 4 * abs(math.cos(t * math.pi / 9)))
+        elif prio == 'N':
+            f = lambda t: (0.5 + t, 0.5 + 4 * abs(math.cos(t * math.pi / 9)))
+        else:
+            f = lambda t: (0.5 + t, 9.5 + 4 * math.sin(t * math.pi / 9))
+    return f, t_min, t_max
 
 def get_shape_curve(shape, prio):
-    if shape == 'cardinal':
-        if prio == 'N':
-            x_vals = np.linspace(0.5, 18.5, 100)
-            y_vals = np.full(100, 0.5)      # Center of top row
-        elif prio == 'S':
-            x_vals = np.linspace(0.5, 18.5, 100)
-            y_vals = np.full(100, 18.5)     # Center of bottom row
-        elif prio == 'E':
-            x_vals = np.full(100, 18.5)
-            y_vals = np.linspace(0.5, 18.5, 100)
-        elif prio == 'W':
-            x_vals = np.full(100, 0.5)
-            y_vals = np.linspace(0.5, 18.5, 100)
-        else:
-            # Default diagonal for other priorities
-            x_vals = np.linspace(0.5, 18.5, 100)
-            y_vals = np.linspace(0.5, 18.5, 100)
-    else:
-        # Placeholder for other shapes (e.g. trig wave)
-        x_vals = np.linspace(0.5, 18.5, 200)
-        if prio == 'S':
-            y_vals = 18.5 - 4 * np.abs(np.sin(x_vals * np.pi / 9))  # arcs near bottom
-        elif prio == 'N':
-            y_vals = 0.5 + 4 * np.abs(np.sin(x_vals * np.pi / 9))
-        else:
-            y_vals = 9 + 4 * np.sin(x_vals * np.pi / 9)  # centered wave
+    f, t_min, t_max = calculate_shape(shape, prio)
+    ts = np.linspace(t_min, t_max, 100)
+    x_vals = [f(t)[0] for t in ts]
+    y_vals = [f(t)[1] for t in ts]
     return x_vals, y_vals
+
+def get_placements(owner, glyph_type, shape, dist, prio, board):
+    f, t_min, t_max = calculate_shape(shape, prio)
+    positions = []
+    if dist == 'random':
+        ts = [random.uniform(t_min, t_max) for _ in range(8)]
+    else:
+        # Placeholder for other dists, use uniform
+        ts = [random.uniform(t_min, t_max) for _ in range(8)]
+    seen = set()
+    for t in ts:
+        x_center, y_center = f(t)
+        px = round(x_center - 0.5)
+        py = round(y_center - 0.5)
+        px = max(0, min(18, px))
+        py = max(0, min(18, py))
+        pos = (px, py)
+        if pos not in seen:
+            seen.add(pos)
+            positions.append(pos)
+    # If fewer than 8 due to dups, add more
+    while len(positions) < 8:
+        t = random.uniform(t_min, t_max)
+        x_center, y_center = f(t)
+        px = round(x_center - 0.5)
+        py = round(y_center - 0.5)
+        px = max(0, min(18, px))
+        py = max(0, min(18, py))
+        pos = (px, py)
+        if pos not in seen:
+            seen.add(pos)
+            positions.append(pos)
+    return positions
 
 def resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner):
     if defender_type == 'wall':
