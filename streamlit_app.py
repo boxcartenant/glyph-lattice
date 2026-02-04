@@ -88,12 +88,12 @@ class TechTree:
 
 # Glyph descriptions
 glyph_descriptions = {
-    'a': 'Territory focus: Territory under the glyph counts as captured (for all other stones, territory under the glyph does not count as captured).',
-    'b': 'Territory focus: Can connect to type b across gaps of one tile for enclosure.',
-    'c': 'Removal focused: On collision, converts type a to type b, mutually removes type b and class B.',
-    'd': 'Removal focused: On collision, converts class A to type d, converts type d to "wall" (space removed from board, cannot count as territory, treated as edge of board).',
-    'e': 'Tactical focus: On collision, changes ownership to match the user which dropped this type e. On collision with type e, mutually destroys glyph.',
-    'f': 'Tactical focus: On collision, converts class B and class A to type f. On collision with type f, creates 3x3 square of type c centered on collision. No chain-reactions permitted (glyphs placed due to explosions will only be placed on empty tiles).',
+    'a': 'Class A (Territory focus) | Type a: Territory under the glyph counts as captured (for all other stones, territory under the glyph does not count as captured).',
+    'b': 'Class A (Territory focus) | Type b: Can connect to type b across gaps of one tile for enclosure.',
+    'c': 'Class B (Removal focused) | Type c: On collision, converts type a to type b, mutually removes type b and class B.',
+    'd': 'Class B (Removal focused) | Type d: On collision, converts class A to type d, converts type d to "wall" (space removed from board, cannot count as territory, treated as edge of board).',
+    'e': 'Class C (Tactical focus) | Type e: On collision, changes ownership to match the user which dropped this type e. On collision with type e, mutually destroys glyph.',
+    'f': 'Class C (Tactical focus) | Type f: On collision, converts class B and class A to type f. On collision with type f, creates 3x3 square of type c centered on collision. No chain-reactions permitted (glyphs placed due to explosions will only be placed on empty tiles).',
 }
 
 # Sample upgrade descriptions (expand as needed)
