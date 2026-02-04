@@ -129,7 +129,7 @@ def get_placements(owner, glyph_type, shape, dist, prio, board):
         ts = [random.uniform(t_min, t_max) for _ in range(8)]
     seen = set()
     for t in ts:
-        x_center, y_center = f(t)
+        y_center, x_center = f(t)
         px = round(x_center - 0.5)
         py = round(y_center - 0.5)
         px = max(0, min(18, px))
