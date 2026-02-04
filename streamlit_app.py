@@ -90,17 +90,17 @@ def calculate_shape(shape, prio, seed=None):
     if seed is not None:
         random.seed(seed)
     if shape == 'cardinal':
-        t_min, t_max = 0, 18
+        t_min, t_max = 0, 19
         if prio == 'N':
-            f = lambda t: (0.5 + t, 0.5)
+            f = lambda t: (0 + t, 0.5)
         elif prio == 'S':
-            f = lambda t: (0.5 + t, 18.5)
+            f = lambda t: (0 + t, 18.5)
         elif prio == 'W':
-            f = lambda t: (0.5, 0.5 + t)
+            f = lambda t: (0.5, 0 + t)
         elif prio == 'E':
-            f = lambda t: (18.5, 0.5 + t)
+            f = lambda t: (18.5, 0 + t)
         else:
-            f = lambda t: (0.5 + t, 0.5 + t)  # placeholder diagonal
+            f = lambda t: (0 + t, 0 + t)  # placeholder diagonal
     else:
         # Placeholder for trig, assume cosine
         t_min, t_max = 0, 18
@@ -668,7 +668,7 @@ elif page == 'Tech Tree':
     upgrade_options = game_state['upgrade_options']
     cost = 10  # Assume cost 10
     if upgrade_options is None:
-        if st.button('Buy Upgrade', disabled=game_state['coin'] < cost):
+        if st.button('Upgrade', disabled=game_state['coin'] < cost):
             game_state['coin'] -= cost
             options = []
             for _ in range(3):
