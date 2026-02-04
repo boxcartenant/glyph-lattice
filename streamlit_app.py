@@ -141,7 +141,7 @@ def get_placements(owner, glyph_type, shape, dist, prio, board):
     # If fewer than 8 due to dups, add more
     while len(positions) < 8:
         t = random.uniform(t_min, t_max)
-        x_center, y_center = f(t)
+        y_center, x_center = f(t)
         px = round(x_center - 0.5)
         py = round(y_center - 0.5)
         px = max(0, min(18, px))
