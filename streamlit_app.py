@@ -89,16 +89,17 @@ class TechTree:
 def calculate_shape(shape, prio, seed=None):
     if seed is not None:
         random.seed(seed)
+    rcenter = random.triangular(0,9,4.5)
     if shape == 'cardinal':
         t_min, t_max = 0, 19
         if prio == 'N':
-            f = lambda t: (0 + t, 0.5)
+            f = lambda t: (0 + t, 0.5+rcenter)
         elif prio == 'S':
-            f = lambda t: (0 + t, 18.5)
+            f = lambda t: (0 + t, 18.5-rcenter)
         elif prio == 'W':
-            f = lambda t: (0.5, 0 + t)
+            f = lambda t: (0.5+rcenter, 0 + t)
         elif prio == 'E':
-            f = lambda t: (18.5, 0 + t)
+            f = lambda t: (18.5-rcenter, 0 + t)
         else:
             f = lambda t: (0 + t, 0 + t)  # placeholder diagonal
     else:
