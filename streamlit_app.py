@@ -5,6 +5,7 @@ import json
 import hashlib
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import math
 
 # Define possible upgrades for each root and branch
 possible_upgrades = {
