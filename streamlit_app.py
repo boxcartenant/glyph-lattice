@@ -86,6 +86,34 @@ class TechTree:
             return [u for u in possible_upgrades[root][branch] if u not in self.trees[root][branch]]
         return []
 
+# Glyph descriptions
+glyph_descriptions = {
+    'a': 'Territory focus: Territory under the glyph counts as captured (for all other stones, territory under the glyph does not count as captured).',
+    'b': 'Territory focus: Can connect to type b across gaps of one tile for enclosure.',
+    'c': 'Removal focused: On collision, converts type a to type b, mutually removes type b and class B.',
+    'd': 'Removal focused: On collision, converts class A to type d, converts type d to "wall" (space removed from board, cannot count as territory, treated as edge of board).',
+    'e': 'Tactical focus: On collision, changes ownership to match the user which dropped this type e. On collision with type e, mutually destroys glyph.',
+    'f': 'Tactical focus: On collision, converts class B and class A to type f. On collision with type f, creates 3x3 square of type c centered on collision. No chain-reactions permitted (glyphs placed due to explosions will only be placed on empty tiles).',
+}
+
+# Sample upgrade descriptions (expand as needed)
+upgrade_descriptions = {
+    'cardinal': 'Basic cardinal line (horizontal or vertical).',
+    'steep': 'Steep diagonal lines.',
+    'shallow': 'Shallow diagonal lines.',
+    '45deg': '45-degree diagonal lines.',
+    'sine': 'Sine wave shape.',
+    'cosine': 'Cosine wave shape.',
+    'tangent': 'Tangent curve shape.',
+    # Add more as needed...
+    'random': 'Uniform random distribution along the shape.',
+    'basic': 'Basic version of the branch (e.g., for bell: weighted toward middle).',
+    # Placeholders for others
+}
+
+def get_upgrade_desc(upgrade):
+    return upgrade_descriptions.get(upgrade, f"Unlocks {upgrade} functionality in this branch.")
+
 # Functions for game logic
 def calculate_shape(shape, prio, seed=None):
     if seed is not None:
@@ -349,6 +377,7 @@ if 'game_state' not in st.session_state:
         'selected_prio': None,
         'pre_collision_player': None,
         'pre_collision_pc': None,
+        'pre_collision_pc_glyph': None,
         'upgrade_options': None,
     }
 
@@ -661,16 +690,10 @@ if page == 'Main':
 elif page == 'Tech Tree':
     st.write(f"Coin: {game_state['coin']}")
     glyphs = game_state['glyphs']
-    for g in 'abcdef':
-        st.write(f"Glyph {g}:")
-        for root, branches in glyphs[g].trees.items():
-            st.write(f"  {root}:")
-            for branch, unlocks in branches.items():
-                st.write(f"    {branch}: {unlocks}")
     upgrade_options = game_state['upgrade_options']
     cost = 10  # Assume cost 10
     if upgrade_options is None:
-        if st.button('Upgrade', disabled=game_state['coin'] < cost):
+        if st.button('Buy Upgrade', disabled=game_state['coin'] < cost):
             game_state['coin'] -= cost
             options = []
             for _ in range(3):
@@ -712,3 +735,41 @@ elif page == 'Tech Tree':
                     glyphs[d_g].trees[d_r][d_b].remove(d_u)
                 game_state['upgrade_options'] = None
                 st.rerun()
+
+    # New interactive tech tree UI
+    selected_glyph = st.selectbox('Select Glyph to View Tech Tree', options=list('abcdef'))
+    if selected_glyph:
+        st.write(f"**Glyph Description:** {glyph_descriptions.get(selected_glyph, 'No description available.')}")
+        tech = glyphs[selected_glyph]
+        for root in tech.trees:
+            with st.expander(root.capitalize()):
+                branch = st.selectbox(f'Select Branch for {root.capitalize()}', options=list(tech.trees[root].keys()), key=f'branch_{selected_glyph}_{root}')
+                if branch:
+                    unlocked = tech.trees[root][branch]
+                    available = tech.get_available_upgrades(root, branch)
+                    st.write('**Unlocked Upgrades:**')
+                    for u in unlocked:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button(u, key=f'btn_{selected_glyph}_{root}_{branch}_{u}'):
+                                st.session_state[f'detail_{selected_glyph}_{root}_{branch}_{u}'] = True
+                        if st.session_state.get(f'detail_{selected_glyph}_{root}_{branch}_{u}', False):
+                            st.write(get_upgrade_desc(u))
+                            # Since upgrades are bought randomly, no direct upgrade button; perhaps note
+                            st.write("This upgrade is already unlocked. Upgrades are purchased via random options above.")
+                            if st.button('Hide Details', key=f'hide_{selected_glyph}_{root}_{branch}_{u}'):
+                                st.session_state[f'detail_{selected_glyph}_{root}_{branch}_{u}'] = False
+                    st.write('**Available Upgrades (Samples):**')
+                    # Show a couple of samples from available
+                    samples = available[:2] if available else ['Sample1', 'Sample2']  # Fallback to placeholders if none available
+                    for u in samples:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button(u, key=f'btn_avail_{selected_glyph}_{root}_{branch}_{u}'):
+                                st.session_state[f'detail_avail_{selected_glyph}_{root}_{branch}_{u}'] = True
+                        if st.session_state.get(f'detail_avail_{selected_glyph}_{root}_{branch}_{u}', False):
+                            st.write(get_upgrade_desc(u))
+                            # Note: Cannot directly upgrade specific; use buy button
+                            st.write("Upgrades are purchased via the 'Buy Upgrade' button, which offers random options.")
+                            if st.button('Hide Details', key=f'hide_avail_{selected_glyph}_{root}_{branch}_{u}'):
+                                st.session_state[f'detail_avail_{selected_glyph}_{root}_{branch}_{u}'] = False
