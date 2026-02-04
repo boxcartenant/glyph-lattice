@@ -6,6 +6,7 @@ import hashlib
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import math
+import copy
 
 # Define possible upgrades for each root and branch
 possible_upgrades = {
@@ -307,6 +308,7 @@ def end_stage(game_state):
     game_state['current_turn'] = 0
     game_state['pre_collision_player'] = None
     game_state['pre_collision_pc'] = None
+    game_state['pre_collision_pc_glyph'] = None
     game_state['selected_glyph'] = None
     game_state['selected_shape'] = None
     game_state['selected_dist'] = None
@@ -344,7 +346,9 @@ def start_stage(game_state):
     stage_seed = int(hashlib.sha256(stage_seed_str.encode()).hexdigest(), 16) % 10**10
     game_state['stage_seed'] = stage_seed
     random.seed(stage_seed)
-    pc_glyphs = {g: TechTree() for g in 'abcdef'}
+    # Copy player's tech trees
+    pc_glyphs = {g: copy.deepcopy(game_state['glyphs'][g]) for g in 'abcdef'}
+    # Add extra random upgrades
     num_upgrades = 5 + (stage // 5)
     for _ in range(num_upgrades):
         glyph = random.choice(list('abcdef'))
@@ -355,6 +359,10 @@ def start_stage(game_state):
             upgrade = random.choice(available)
             pc_glyphs[glyph].trees[root][branch].append(upgrade)
     game_state['pc_glyphs'] = pc_glyphs  # Save pc_glyphs in state
+    # Set PC flavor biases
+    game_state['pc_glyph_mode'] = random.randint(0, 5)
+    game_state['pc_shape_mode_frac'] = random.uniform(0, 1)
+    game_state['pc_dist_mode_frac'] = random.uniform(0, 1)
 
 # Main app
 if 'game_state' not in st.session_state:
@@ -379,6 +387,9 @@ if 'game_state' not in st.session_state:
         'pre_collision_pc': None,
         'pre_collision_pc_glyph': None,
         'upgrade_options': None,
+        'pc_glyph_mode': 2,  # Default
+        'pc_shape_mode_frac': 0.5,
+        'pc_dist_mode_frac': 0.5,
     }
 
 game_state = st.session_state.game_state
@@ -534,11 +545,24 @@ if page == 'Main':
                     current_turn = game_state['current_turn']
                     turn_seed = int(hashlib.sha256((str(stage_seed) + str(current_turn) + str(choice_hash)).encode()).hexdigest(), 16) % 10**10
                     random.seed(turn_seed)
-                    pc_glyph = random.choice(list('abcdef'))
-                    pc_shapes = pc_glyphs[pc_glyph].get_unlocked_shapes()
-                    pc_shape = random.choice(pc_shapes) if pc_shapes else 'cardinal'
-                    pc_dists = pc_glyphs[pc_glyph].get_unlocked_dists()
-                    pc_dist = random.choice(pc_dists) if pc_dists else 'random'
+                    glyphs_list = list('abcdef')
+                    t_glyph = random.triangular(0, 5, game_state['pc_glyph_mode'])
+                    pc_glyph = glyphs_list[round(t_glyph)]
+                    game_state['pre_collision_pc_glyph'] = pc_glyph
+                    pc_shapes = sorted(pc_glyphs[pc_glyph].get_unlocked_shapes())
+                    len_s = len(pc_shapes)
+                    if len_s > 0:
+                        t_shape = random.triangular(0, len_s - 1, game_state['pc_shape_mode_frac'] * (len_s - 1))
+                        pc_shape = pc_shapes[round(t_shape)] if pc_shapes else 'cardinal'
+                    else:
+                        pc_shape = 'cardinal'
+                    pc_dists = sorted(pc_glyphs[pc_glyph].get_unlocked_dists())
+                    len_d = len(pc_dists)
+                    if len_d > 0:
+                        t_dist = random.triangular(0, len_d - 1, game_state['pc_dist_mode_frac'] * (len_d - 1))
+                        pc_dist = pc_dists[round(t_dist)] if pc_dists else 'random'
+                    else:
+                        pc_dist = 'random'
                     pc_prios = pc_glyphs[pc_glyph].get_unlocked_prios()
                     pc_prio = random.choice(pc_prios) if pc_prios else 'N'
                     pc_positions = get_placements('pc', pc_glyph, pc_shape, pc_dist, pc_prio, game_state['board'])
@@ -651,7 +675,7 @@ if page == 'Main':
         if st.button('Show PC Pre-Collision'):
             temp_board = game_state['board'].copy()
             for px, py in game_state['pre_collision_pc']:
-                temp_board[px, py] = 'X'  # Placeholder for PC
+                temp_board[px, py] = game_state['pre_collision_pc_glyph'].upper() if 'pre_collision_pc_glyph' in game_state else 'X'
             # 1. Flatten the NumPy array and wrap each element in a <div>
             # This creates 361 small div containers
             cells_html = "".join([f"<div>{char}</div>" for char in temp_board.flatten()])
