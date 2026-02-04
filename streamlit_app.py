@@ -89,18 +89,18 @@ class TechTree:
 def get_placements(owner, glyph_type, shape, dist, prio, board):
     positions = []
     if shape == 'cardinal' and dist == 'random' and prio in ['N', 'S', 'E', 'W']:
-        if prio == 'W':
+        if prio == 'N':
             y = 0
-        elif prio == 'E':
-            y = 18
         elif prio == 'S':
+            y = 18
+        elif prio == 'E':
             x = 18
-        elif prio == 'N':
+        elif prio == 'W':
             x = 0
         if prio in ['N', 'S']:
-            path = [(i, y) for i in range(19)]
+            path = [(y, i) for i in range(19)]
         else:
-            path = [(x, i) for i in range(19)]
+            path = [(i, x) for i in range(19)]
         indices = np.arange(19)
         chosen = np.random.choice(indices, size=8, replace=False)
         positions = [path[idx] for idx in chosen]
