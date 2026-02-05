@@ -146,8 +146,8 @@ def calculate_shape(shape, prio, seed=None):
 def get_shape_curve(shape, prio):
     f, t_min, t_max = calculate_shape(shape, prio)
     ts = np.linspace(t_min, t_max, 100)
-    x_vals = [f(t)[1] for t in ts]
-    y_vals = [f(t)[0] for t in ts]
+    x_vals = [f(t)[0] for t in ts]
+    y_vals = [f(t)[1] for t in ts]
     return x_vals, y_vals
 
 def get_placements(owner, glyph_type, shape, dist, prio, board):
@@ -397,6 +397,8 @@ if 'game_state' not in st.session_state:
         'pc_dist_mode_frac': 0.5,
         'last_collisions': set(),
         'debug_log': [],  # Add this for debug messages
+        'player_captured': 0,
+        'pc_captured': 0,
     }
 
 game_state = st.session_state.game_state
@@ -525,13 +527,13 @@ if page == 'Main':
                     # Get curve for shape
                     x_vals, y_vals = get_shape_curve(selected_shape, selected_prio)
                     fig, ax = plt.subplots(figsize=(4, 4))
-                    ax.plot(x_vals, y_vals, 'b-')
+                    ax.plot(x_vals, [18 - y for y in y_vals], 'b-')
                     ax.set_xlim(0, 18)
                     ax.set_ylim(0, 18)
                     ax.grid(True, which='both', linestyle='--', linewidth=0.5)
                     ax.set_xticks(range(19))
                     ax.set_yticks(range(19))
-                    ax.invert_yaxis()
+                    ax.set_yticklabels([str(18 - tick) for tick in range(19)])
                     ax.set_aspect('equal')
                     st.pyplot(fig)
                 if st.button('Commit'):
@@ -611,7 +613,7 @@ if page == 'Main':
                                         nx, ny = x + dx, y + dy
                                         if 0 <= nx < 19 and 0 <= ny < 19 and board[ny, nx] == '.':
                                             board[ny, nx] = 'c'
-                                            owners[ny, nx] = current_owner  # or random? Assume last attacker
+                                            owners[ny, nx] = attacker_owner  # Use attacker_owner for f + f
                                             game_state['last_collisions'].add((nx, ny))
                                 game_state['last_collisions'].add((x, y))
                             continue
@@ -645,7 +647,7 @@ if page == 'Main':
                             game_state['last_collisions'].add((x, y))
                     capture_groups(board, owners)
                     occupied = np.sum(board != '.') / 361
-                    if occupied > 0.8:
+                    if occupied > 0.7:
                         end_stage(game_state)
                     else:
                         game_state['current_turn'] += 1
