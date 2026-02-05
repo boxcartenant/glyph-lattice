@@ -442,10 +442,10 @@ if page == 'Main':
             font-size: 1.2rem;
         }
         .player-cell {
-            color: blue;
+            color: CadetBlue;
         }
         .pc-cell {
-            color: red;
+            color: LightGreen;
         }
     </style>
     """
