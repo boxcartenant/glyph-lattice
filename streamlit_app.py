@@ -235,13 +235,18 @@ def resolve_collision(attacker_type, attacker_owner, defender_type, defender_own
     # Default: keep defender (cannot place on occupied without specific rule)
     return defender_type, defender_owner
 
-def capture_groups(board, owners):
+def capture_groups(board, owners, game_state):
     visited = np.zeros((19, 19), dtype=bool)
     for i in range(19):
         for j in range(19):
             if board[i, j] != '.' and not visited[i, j]:
                 group, liberties = get_group_liberties(i, j, board, owners, visited)
                 if liberties == 0:
+                    group_owner = owners[group[0][0], group[0][1]]
+                    if group_owner == 'player':
+                        game_state['pc_captured'] += len(group)
+                    elif group_owner == 'pc':
+                        game_state['player_captured'] += len(group)
                     for gx, gy in group:
                         board[gx, gy] = '.'
                         owners[gx, gy] = None
@@ -271,6 +276,8 @@ def end_stage(game_state):
     visited = np.zeros((19, 19), dtype=bool)
     player_territory = 0
     pc_territory = 0
+    territory_board = board.copy()
+    territory_owners = owners.copy()
     for i in range(19):
         for j in range(19):
             if board[i, j] == '.' and not visited[i, j]:
@@ -281,10 +288,21 @@ def end_stage(game_state):
                 if len(unique_borders) == 1 and is_enclosed(region):
                     own = list(unique_borders)[0]
                     size = len(region)
+                    # Subtract enemy stones in region
+                    enemy_count = 0
+                    for rx, ry in region:
+                        if board[rx, ry] != '.' and owners[rx, ry] != own:
+                            enemy_count += 1
+                    size -= enemy_count
                     if own == 'player':
                         player_territory += size
                     elif own == 'pc':
                         pc_territory += size
+                    # Mark territory on territory_board
+                    mark_char = 'X'
+                    for rx, ry in region:
+                        territory_board[rx, ry] = mark_char
+                        territory_owners[rx, ry] = own
     # Add type a cells
     for i in range(19):
         for j in range(19):
@@ -293,11 +311,17 @@ def end_stage(game_state):
                     player_territory += 1
                 elif owners[i, j] == 'pc':
                     pc_territory += 1
-    st.write(f"Player territory: {player_territory}")
-    st.write(f"PC territory: {pc_territory}")
+    game_state['final_board'] = board.copy()
+    game_state['final_owners'] = owners.copy()
+    game_state['final_territory_board'] = territory_board
+    game_state['final_territory_owners'] = territory_owners
+    game_state['player_territory'] = player_territory
+    game_state['pc_territory'] = pc_territory
+    game_state['player_score'] = player_territory + game_state['pc_captured']
+    game_state['pc_score'] = pc_territory + game_state['player_captured']
     coin = game_state['coin']
-    coin += 10 * player_territory
-    if player_territory > pc_territory:
+    if game_state['player_score'] > game_state['pc_score']:
+        coin += game_state['player_score']
         game_state['stage'] += 1
         game_state['losses'] = 0
     else:
@@ -317,6 +341,8 @@ def end_stage(game_state):
     game_state['selected_dist'] = None
     game_state['selected_prio'] = None
     game_state['last_collisions'] = set()
+    game_state['player_captured'] = 0
+    game_state['pc_captured'] = 0
 
 def get_region(start_x, start_y, board, owners, visited):
     region = []
@@ -399,6 +425,14 @@ if 'game_state' not in st.session_state:
         'debug_log': [],  # Add this for debug messages
         'player_captured': 0,
         'pc_captured': 0,
+        'final_board': None,
+        'final_owners': None,
+        'final_territory_board': None,
+        'final_territory_owners': None,
+        'player_territory': 0,
+        'pc_territory': 0,
+        'player_score': 0,
+        'pc_score': 0,
     }
 
 game_state = st.session_state.game_state
@@ -456,6 +490,15 @@ if page == 'Main':
         .pc-cell {
             color: SandyBrown;
         }
+        .player-territory {
+            color: LightBlue;
+        }
+        .pc-territory {
+            color: LightCoral;
+        }
+        .wall-cell {
+            color: gray;
+        }
     </style>
     """
     # Render
@@ -463,9 +506,73 @@ if page == 'Main':
     st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
     
     if not game_state['stage_started']:
-        if st.button('Start Next Stage'):
-            start_stage(game_state)
-            st.rerun()
+        if 'final_board' in game_state and game_state['final_board'] is not None:
+            # Endgame readout
+            st.write("End of Stage")
+            # Final board state
+            st.write("Final Board State:")
+            final_cells_html = ""
+            for py in range(19):
+                for px in range(19):
+                    char = game_state['final_board'][py, px]
+                    owner = game_state['final_owners'][py, px]
+                    class_name = ''
+                    if owner == 'player':
+                        class_name = 'player-cell'
+                    elif owner == 'pc':
+                        class_name = 'pc-cell'
+                    final_cells_html += f'<div class="{class_name}">{char}</div>'
+            st.markdown(f'<div class="game-board">{final_cells_html}</div>', unsafe_allow_html=True)
+
+            # Territory map
+            st.write("Territory Map (X for scored territory, . and w for unscored/wall):")
+            territory_cells_html = ""
+            for py in range(19):
+                for px in range(19):
+                    char = game_state['final_territory_board'][py, px]
+                    owner = game_state['final_territory_owners'][py, px]
+                    class_name = ''
+                    if char == 'X' and owner == 'player':
+                        class_name = 'player-territory'
+                    elif char == 'X' and owner == 'pc':
+                        class_name = 'pc-territory'
+                    elif char == 'w':
+                        class_name = 'wall-cell'
+                    territory_cells_html += f'<div class="{class_name}">{char}</div>'
+            st.markdown(f'<div class="game-board">{territory_cells_html}</div>', unsafe_allow_html=True)
+
+            # Captured stones
+            st.write(f"Player captured stones: {game_state['pc_captured']}")
+            st.write(f"PC captured stones: {game_state['player_captured']}")
+
+            # Total scores
+            st.write(f"Player total score: {game_state['player_score']}")
+            st.write(f"PC total score: {game_state['pc_score']}")
+
+            # Coins earned
+            if game_state['player_score'] > game_state['pc_score']:
+                st.write(f"Coins earned: {game_state['player_score']}")
+            else:
+                st.write("No coins earned (loss)")
+
+            # Reset button
+            if st.button('Reset for Next Stage'):
+                game_state['final_board'] = None
+                game_state['final_owners'] = None
+                game_state['final_territory_board'] = None
+                game_state['final_territory_owners'] = None
+                game_state['player_territory'] = 0
+                game_state['pc_territory'] = 0
+                game_state['player_captured'] = 0
+                game_state['pc_captured'] = 0
+                game_state['player_score'] = 0
+                game_state['pc_score'] = 0
+                start_stage(game_state)
+                st.rerun()
+        else:
+            if st.button('Start Next Stage'):
+                start_stage(game_state)
+                st.rerun()
         if game_state['losses'] == 5:
             if st.button('Change Seed'):
                 game_state['stage_seed'] = random.randint(0, 10**10)
@@ -594,7 +701,6 @@ if page == 'Main':
                         else:
                             # Resolve between incoming
                             attacker_owner, attacker_type = incoming[0]
-                            explosion_owner = attacker_owner
                             for defender_owner, defender_type in incoming[1:]:
                                 new_type, new_owner = resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner, True) #last bool indicates these are new stones
                                 game_state['debug_log'].append(f"incoming collision: {attacker_owner} {attacker_type} {defender_owner} {defender_type}, result: {new_type} {new_owner}")
@@ -614,7 +720,7 @@ if page == 'Main':
                                         nx, ny = x + dx, y + dy
                                         if 0 <= nx < 19 and 0 <= ny < 19 and board[ny, nx] == '.':
                                             board[ny, nx] = 'c'
-                                            owners[ny, nx] = explosion_owner  # Use attacker_owner for f + f
+                                            owners[ny, nx] = attacker_owner  # Use attacker_owner for f + f
                                             game_state['last_collisions'].add((nx, ny))
                                 game_state['last_collisions'].add((x, y))
                             continue
@@ -646,9 +752,9 @@ if page == 'Main':
                             owners[y, x] = current_owner
                         if collided:
                             game_state['last_collisions'].add((x, y))
-                    capture_groups(board, owners)
+                    capture_groups(board, owners, game_state)
                     occupied = np.sum(board != '.') / 361
-                    if occupied > 0.2:
+                    if occupied > 0.6:
                         end_stage(game_state)
                     else:
                         game_state['current_turn'] += 1
