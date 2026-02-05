@@ -122,13 +122,13 @@ def calculate_shape(shape, prio, seed=None):
     rcenter = random.triangular(0,9,4.5)
     if shape == 'cardinal':
         t_min, t_max = 0, 19
-        if prio == 'N':
+        if prio == 'W':
             f = lambda t: (0 + t, 0.5+rcenter)
-        elif prio == 'S':
-            f = lambda t: (0 + t, 18.5-rcenter)
-        elif prio == 'W':
-            f = lambda t: (0.5+rcenter, 0 + t)
         elif prio == 'E':
+            f = lambda t: (0 + t, 18.5-rcenter)
+        elif prio == 'N':
+            f = lambda t: (0.5+rcenter, 0 + t)
+        elif prio == 'S':
             f = lambda t: (18.5-rcenter, 0 + t)
         else:
             f = lambda t: (0 + t, 0 + t)  # placeholder diagonal
@@ -309,6 +309,7 @@ def end_stage(game_state):
     game_state['pre_collision_player'] = None
     game_state['pre_collision_pc'] = None
     game_state['pre_collision_pc_glyph'] = None
+    game_state['pre_collision_player_glyph'] = None
     game_state['selected_glyph'] = None
     game_state['selected_shape'] = None
     game_state['selected_dist'] = None
@@ -387,6 +388,7 @@ if 'game_state' not in st.session_state:
         'pre_collision_player': None,
         'pre_collision_pc': None,
         'pre_collision_pc_glyph': None,
+        'pre_collision_player_glyph': None,
         'upgrade_options': None,
         'pc_glyph_mode': 2,  # Default
         'pc_shape_mode_frac': 0.5,
@@ -512,7 +514,11 @@ if page == 'Main':
                     for i in range(19):
                         for j in range(19):
                             char = preview_board[i, j]
-                            class_name = 'player-cell' if char != '.' else ''
+                            class_name = ''
+                            if game_state['owners'][i,j] == 'pc' and not char.isupper():
+                                class_name = 'pc-cell'
+                            elif char.isupper() or game_state['owners'][i,j] == 'player':
+                                class_name = 'player-cell'
                             cells_html += f'<div class="{class_name}">{char}</div>'
                     st.markdown(grid_style, unsafe_allow_html=True)
                     st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
@@ -532,6 +538,7 @@ if page == 'Main':
                 if st.button('Commit'):
                     player_positions = get_placements('player', selected_glyph, selected_shape, selected_dist, selected_prio, game_state['board'])
                     game_state['pre_collision_player'] = player_positions
+                    game_state['pre_collision_player_glyph'] = selected_glyph
                     player_choice = selected_glyph + (selected_shape or '') + (selected_dist or '') + (selected_prio or '')
                     choice_hash = int(hashlib.sha256(player_choice.encode()).hexdigest(), 16)
                     stage_seed = game_state['stage_seed']
@@ -645,7 +652,7 @@ if page == 'Main':
         if st.button('Show Player Pre-Collision'):
             temp_board = game_state['board'].copy()
             for px, py in game_state['pre_collision_player']:
-                temp_board[py, px] = game_state['selected_glyph'].upper()
+                temp_board[py, px] = game_state['pre_collision_player_glyph'].upper()
             cells_html = ""
             for i in range(19):
                 for j in range(19):
