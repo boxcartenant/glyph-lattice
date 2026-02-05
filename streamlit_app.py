@@ -485,11 +485,7 @@ if page == 'Main':
         hand = game_state['hand']
         hand_glyphs = [c for c in hand if c in glyph_cards]
         hand_shapes = [c for c in hand if c in shape_cards]
-        hand_dists = [c for c in hand if c in dist_cards]
-                          
-                                         
-                                         
-                                       
+        hand_dists = [c for c in hand if c in dist_cards]    
         selected_glyph = st.selectbox('Select Glyph', options=hand_glyphs, key='sel_glyph')
         if selected_glyph:
             glyph_shapes = glyphs[selected_glyph].get_unlocked_shapes()
@@ -536,6 +532,7 @@ if page == 'Main':
                     ax.set_aspect('equal')
                     st.pyplot(fig)
                 if st.button('Commit'):
+                    st.write("You committed!")
                     player_positions = get_placements('player', selected_glyph, selected_shape, selected_dist, selected_prio, game_state['board'])
                     game_state['pre_collision_player'] = player_positions
                     game_state['pre_collision_player_glyph'] = selected_glyph
