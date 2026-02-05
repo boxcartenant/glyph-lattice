@@ -442,7 +442,7 @@ if page == 'Main':
             font-size: 1.2rem;
         }
         .player-cell {
-            color: CadetBlue;
+            color: LightGreen;
         }
         .pc-cell {
             color: SandyBrown;
