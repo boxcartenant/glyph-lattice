@@ -394,6 +394,7 @@ if 'game_state' not in st.session_state:
         'pc_shape_mode_frac': 0.5,
         'pc_dist_mode_frac': 0.5,
         'last_collisions': set(),
+        'debug_log': [],  # Add this for debug messages
     }
 
 game_state = st.session_state.game_state
@@ -485,7 +486,7 @@ if page == 'Main':
         hand = game_state['hand']
         hand_glyphs = [c for c in hand if c in glyph_cards]
         hand_shapes = [c for c in hand if c in shape_cards]
-        hand_dists = [c for c in hand if c in dist_cards]    
+        hand_dists = [c for c in hand if c in dist_cards]
         selected_glyph = st.selectbox('Select Glyph', options=hand_glyphs, key='sel_glyph')
         if selected_glyph:
             glyph_shapes = glyphs[selected_glyph].get_unlocked_shapes()
@@ -532,7 +533,7 @@ if page == 'Main':
                     ax.set_aspect('equal')
                     st.pyplot(fig)
                 if st.button('Commit'):
-                    st.write("You committed!")
+                    game_state['debug_log'] = []  # Clear debug log
                     player_positions = get_placements('player', selected_glyph, selected_shape, selected_dist, selected_prio, game_state['board'])
                     game_state['pre_collision_player'] = player_positions
                     game_state['pre_collision_player_glyph'] = selected_glyph
@@ -590,7 +591,7 @@ if page == 'Main':
                             # Resolve between incoming
                             attacker_owner, attacker_type = incoming[0]
                             for defender_owner, defender_type in incoming[1:]:
-                                st.write("incoming collision: ", attacker_owner, attacker_type, defender_owner, defender_type)
+                                game_state['debug_log'].append(f"incoming collision: {attacker_owner} {attacker_type} {defender_owner} {defender_type}")
                                 new_type, new_owner = resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner)
                                 if new_type is None:
                                     if attacker_type == 'f' and defender_type == 'f':
@@ -615,7 +616,7 @@ if page == 'Main':
                         # Now resolve with existing
                         if existing_type is not None:
                             collided = True
-                            st.write("collision w existing: ", current_type, current_owner, existing_type, existing_owner)
+                            game_state['debug_log'].append(f"collision w existing: {current_type} {current_owner} {existing_type} {existing_owner}")
                             current_type, current_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
                         if current_type is None:
                             if existing_type == 'f' and (existing_type == 'f' or current_type == 'f'):  # Check for f collision with existing
@@ -698,6 +699,12 @@ if page == 'Main':
                     cells_html += f'<div class="{class_name}">{char}</div>'
             st.markdown(grid_style, unsafe_allow_html=True)
             st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
+
+    # Display debug log
+    if game_state['debug_log']:
+        st.write("Debug Log:")
+        for log in game_state['debug_log']:
+            st.write(log)
 
 elif page == 'Tech Tree':
     st.write(f"Coin: {game_state['coin']}")
