@@ -620,7 +620,7 @@ if page == 'Main':
                             collided = True
                             nnew_type, nnew_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
                             game_state['debug_log'].append(f"collision w existing: {current_type} {current_owner} {existing_type} {existing_owner}, result: {nnew_type} {nnew_owner}")
-                            currnet_type = nnew_type
+                            current_type = nnew_type
                             current_owner = nnew_owner
                         if current_type is None:
                             if existing_type == 'f' and (existing_type == 'f' or current_type == 'f'):  # Check for f collision with existing
