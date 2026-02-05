@@ -407,11 +407,19 @@ with st.sidebar:
         st.rerun()
 
 if page == 'Main':
-    # 1. Flatten the NumPy array and wrap each element in a <div>
-    # This creates 361 small div containers
-    cells_html = "".join([f"<div>{char}</div>" for char in st.session_state.game_state['board'].flatten()])
-    # 2. Define the styling
-    # We use aspect-ratio: 1 / 1 to ensure the board stays square
+    # Render board with colors
+    cells_html = ""
+    for py in range(19):
+        for px in range(19):
+            char = game_state['board'][py, px]
+            owner = game_state['owners'][py, px]
+            class_name = ''
+            if owner == 'player':
+                class_name = 'player-cell'
+            elif owner == 'pc':
+                class_name = 'pc-cell'
+            cells_html += f'<div class="{class_name}">{char}</div>'
+    # Styling with colors
     grid_style = """
     <style>
         .game-board {
@@ -433,9 +441,15 @@ if page == 'Main':
             border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
             font-size: 1.2rem;
         }
+        .player-cell {
+            color: blue;
+        }
+        .pc-cell {
+            color: red;
+        }
     </style>
     """
-    # 3. Render
+    # Render
     st.markdown(grid_style, unsafe_allow_html=True)
     st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
     
@@ -491,36 +505,13 @@ if page == 'Main':
                     positions = get_placements('player', selected_glyph, selected_shape, selected_dist, selected_prio, game_state['board'])
                     preview_board = game_state['board'].copy()
                     for px, py in positions:
-                        preview_board[px, py] = selected_glyph.upper()
-                    # 1. Flatten the NumPy array and wrap each element in a <div>
-                    # This creates 361 small div containers
-                    cells_html = "".join([f"<div>{char}</div>" for char in preview_board.flatten()])
-                    # 2. Define the styling
-                    # We use aspect-ratio: 1 / 1 to ensure the board stays square
-                    grid_style = """
-                    <style>
-                        .game-board {
-                            display: grid;
-                            grid-template-columns: repeat(19, 1fr);
-                            width: 80%;
-                            max-width: 300px; /* Adjust based on your preference */
-                            aspect-ratio: 1 / 1;
-                            border: 1px solid #333;
-                            margin: 10px 0;
-                        }
-                        .game-board div {
-                            aspect-ratio: 1 / 1;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            line-height: 0;
-                            font-family: 'Courier New', monospace;
-                            border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
-                            font-size: 1.2rem;
-                        }
-                    </style>
-                    """
-                    # 3. Render
+                        preview_board[py, px] = selected_glyph.upper()
+                    cells_html = ""
+                    for i in range(19):
+                        for j in range(19):
+                            char = preview_board[i, j]
+                            class_name = 'player-cell' if char != '.' else ''
+                            cells_html += f'<div class="{class_name}">{char}</div>'
                     st.markdown(grid_style, unsafe_allow_html=True)
                     st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
                 if st.button('Preview Graph'):
@@ -577,8 +568,8 @@ if page == 'Main':
                         new_placements[tuple(p)].append(('pc', pc_glyph))
                     for pos, incoming in new_placements.items():
                         x, y = pos
-                        existing_type = board[x, y] if board[x, y] != '.' else None
-                        existing_owner = owners[x, y]
+                        existing_type = board[y, x] if board[y, x] != '.' else None
+                        existing_owner = owners[y, x]
                         # Resolve incoming first if multiple
                         current_type = None
                         current_owner = None
@@ -604,29 +595,29 @@ if page == 'Main':
                                 for dx in range(-1, 2):
                                     for dy in range(-1, 2):
                                         nx, ny = x + dx, y + dy
-                                        if 0 <= nx < 19 and 0 <= ny < 19 and board[nx, ny] == '.':
-                                            board[nx, ny] = 'c'
-                                            owners[nx, ny] = current_owner  # or random? Assume last attacker
+                                        if 0 <= nx < 19 and 0 <= ny < 19 and board[ny, nx] == '.':
+                                            board[ny, nx] = 'c'
+                                            owners[ny, nx] = current_owner  # or random? Assume last attacker
                             continue
                         # Now resolve with existing
                         if existing_type is not None:
                             current_type, current_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
                         if current_type is None:
                             if existing_type == 'f' and (existing_type == 'f' or current_type == 'f'):  # Check for f collision with existing
-                                board[x, y] = '.'
-                                owners[x, y] = None
+                                board[y, x] = '.'
+                                owners[y, x] = None
                                 for dx in range(-1, 2):
                                     for dy in range(-1, 2):
                                         nx, ny = x + dx, y + dy
-                                        if 0 <= nx < 19 and 0 <= ny < 19 and board[nx, ny] == '.':
-                                            board[nx, ny] = 'c'
-                                            owners[nx, ny] = current_owner
+                                        if 0 <= nx < 19 and 0 <= ny < 19 and board[ny, nx] == '.':
+                                            board[ny, nx] = 'c'
+                                            owners[ny, nx] = current_owner
                             else:
-                                board[x, y] = '.'
-                                owners[x, y] = None
+                                board[y, x] = '.'
+                                owners[y, x] = None
                         else:
-                            board[x, y] = current_type
-                            owners[x, y] = current_owner
+                            board[y, x] = current_type
+                            owners[y, x] = current_owner
                     capture_groups(board, owners)
                     occupied = np.sum(board != '.') / 361
                     if occupied > 0.8:
@@ -640,76 +631,27 @@ if page == 'Main':
         if st.button('Show Player Pre-Collision'):
             temp_board = game_state['board'].copy()
             for px, py in game_state['pre_collision_player']:
-                temp_board[px, py] = game_state['selected_glyph'].upper()
-            # 1. Flatten the NumPy array and wrap each element in a <div>
-            # This creates 361 small div containers
-            cells_html = "".join([f"<div>{char}</div>" for char in temp_board.flatten()])
-            # 2. Define the styling
-            # We use aspect-ratio: 1 / 1 to ensure the board stays square
-            grid_style = """
-            <style>
-                .game-board {
-                    display: grid;
-                    grid-template-columns: repeat(19, 1fr);
-                    width: 80%;
-                    max-width: 300px; /* Adjust based on your preference */
-                    aspect-ratio: 1 / 1;
-                    border: 1px solid #333;
-                    margin: 10px 0;
-                }
-                .game-board div {
-                    aspect-ratio: 1 / 1;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    line-height: 0;
-                    font-family: 'Courier New', monospace;
-                    border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
-                    font-size: 1.2rem;
-                }
-            </style>
-            """
-            # 3. Render
+                temp_board[py, px] = game_state['selected_glyph'].upper()
+            cells_html = ""
+            for i in range(19):
+                for j in range(19):
+                    char = temp_board[i, j]
+                    class_name = 'player-cell' if char != '.' else ''
+                    cells_html += f'<div class="{class_name}">{char}</div>'
             st.markdown(grid_style, unsafe_allow_html=True)
             st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
         if st.button('Show PC Pre-Collision'):
             temp_board = game_state['board'].copy()
             for px, py in game_state['pre_collision_pc']:
-                temp_board[px, py] = game_state['pre_collision_pc_glyph'].upper() if 'pre_collision_pc_glyph' in game_state else 'X'
-            # 1. Flatten the NumPy array and wrap each element in a <div>
-            # This creates 361 small div containers
-            cells_html = "".join([f"<div>{char}</div>" for char in temp_board.flatten()])
-            # 2. Define the styling
-            # We use aspect-ratio: 1 / 1 to ensure the board stays square
-            grid_style = """
-            <style>
-                .game-board {
-                    display: grid;
-                    grid-template-columns: repeat(19, 1fr);
-                    width: 80%;
-                    max-width: 300px; /* Adjust based on your preference */
-                    aspect-ratio: 1 / 1;
-                    border: 1px solid #333;
-                    margin: 10px 0;
-                }
-                .game-board div {
-                    aspect-ratio: 1 / 1;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    line-height: 0;
-                    font-family: 'Courier New', monospace;
-                    border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
-                    font-size: 1.2rem;
-                }
-            </style>
-            """
-            # 3. Render
+                temp_board[py, px] = game_state['pre_collision_pc_glyph'].upper() if 'pre_collision_pc_glyph' in game_state else 'X'
+            cells_html = ""
+            for i in range(19):
+                for j in range(19):
+                    char = temp_board[i, j]
+                    class_name = 'pc-cell' if char != '.' else ''
+                    cells_html += f'<div class="{class_name}">{char}</div>'
             st.markdown(grid_style, unsafe_allow_html=True)
             st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
-        if st.button('Show Post-Collision'):
-            # Main board is post
-            pass
 
 elif page == 'Tech Tree':
     st.write(f"Coin: {game_state['coin']}")
