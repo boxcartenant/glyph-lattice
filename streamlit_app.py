@@ -618,7 +618,7 @@ if page == 'Main':
                         # Now resolve with existing
                         if existing_type is not None:
                             collided = True
-                            print("collision w existing: ", attacker_owner, attacker_type, existing_type, existing_owner)
+                            print("collision w existing: ", current_type, current_owner, existing_type, existing_owner)
                             current_type, current_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
                         if current_type is None:
                             if existing_type == 'f' and (existing_type == 'f' or current_type == 'f'):  # Check for f collision with existing
