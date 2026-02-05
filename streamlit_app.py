@@ -593,8 +593,8 @@ if page == 'Main':
                             # Resolve between incoming
                             attacker_owner, attacker_type = incoming[0]
                             for defender_owner, defender_type in incoming[1:]:
-                                game_state['debug_log'].append(f"incoming collision: {attacker_owner} {attacker_type} {defender_owner} {defender_type}")
                                 new_type, new_owner = resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner, True) #last bool indicates these are new stones
+                                game_state['debug_log'].append(f"incoming collision: {attacker_owner} {attacker_type} {defender_owner} {defender_type}, result: {new_type} {new_owner}")
                                 if new_type is None:
                                     if attacker_type == 'f' and defender_type == 'f':
                                         special_f = True
@@ -618,8 +618,10 @@ if page == 'Main':
                         # Now resolve with existing
                         if existing_type is not None:
                             collided = True
-                            game_state['debug_log'].append(f"collision w existing: {current_type} {current_owner} {existing_type} {existing_owner}")
-                            current_type, current_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
+                            new_type, new_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
+                            game_state['debug_log'].append(f"collision w existing: {current_type} {current_owner} {existing_type} {existing_owner}, result: {new_type} {new_owner}")
+                            currnet_type = new_type
+                            current_owner = new_owner
                         if current_type is None:
                             if existing_type == 'f' and (existing_type == 'f' or current_type == 'f'):  # Check for f collision with existing
                                 collided = True
