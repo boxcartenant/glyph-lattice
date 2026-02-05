@@ -183,7 +183,7 @@ def get_placements(owner, glyph_type, shape, dist, prio, board):
             positions.append(pos)
     return positions
 
-def resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner):
+def resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner, new_stones = False):
     if defender_type == 'wall':
         return 'wall', None
     if attacker_type == defender_type:
@@ -193,6 +193,8 @@ def resolve_collision(attacker_type, attacker_owner, defender_type, defender_own
             return None, None
         if attacker_type == 'f':
             return None, None  # special handled outside
+        if new_stones:
+            return None, None
         # For other same types, keep defender
         return defender_type, defender_owner
 
@@ -592,7 +594,7 @@ if page == 'Main':
                             attacker_owner, attacker_type = incoming[0]
                             for defender_owner, defender_type in incoming[1:]:
                                 game_state['debug_log'].append(f"incoming collision: {attacker_owner} {attacker_type} {defender_owner} {defender_type}")
-                                new_type, new_owner = resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner)
+                                new_type, new_owner = resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner, True) #last bool indicates these are new stones
                                 if new_type is None:
                                     if attacker_type == 'f' and defender_type == 'f':
                                         special_f = True
