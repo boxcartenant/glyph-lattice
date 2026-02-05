@@ -445,7 +445,7 @@ if page == 'Main':
             color: CadetBlue;
         }
         .pc-cell {
-            color: LightGreen;
+            color: SandyBrown;
         }
     </style>
     """
