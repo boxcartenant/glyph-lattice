@@ -594,6 +594,7 @@ if page == 'Main':
                         else:
                             # Resolve between incoming
                             attacker_owner, attacker_type = incoming[0]
+                            explosion_owner = attacker_owner
                             for defender_owner, defender_type in incoming[1:]:
                                 new_type, new_owner = resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner, True) #last bool indicates these are new stones
                                 game_state['debug_log'].append(f"incoming collision: {attacker_owner} {attacker_type} {defender_owner} {defender_type}, result: {new_type} {new_owner}")
@@ -613,7 +614,7 @@ if page == 'Main':
                                         nx, ny = x + dx, y + dy
                                         if 0 <= nx < 19 and 0 <= ny < 19 and board[ny, nx] == '.':
                                             board[ny, nx] = 'c'
-                                            owners[ny, nx] = attacker_owner  # Use attacker_owner for f + f
+                                            owners[ny, nx] = explosion_owner  # Use attacker_owner for f + f
                                             game_state['last_collisions'].add((nx, ny))
                                 game_state['last_collisions'].add((x, y))
                             continue
@@ -647,7 +648,7 @@ if page == 'Main':
                             game_state['last_collisions'].add((x, y))
                     capture_groups(board, owners)
                     occupied = np.sum(board != '.') / 361
-                    if occupied > 0.7:
+                    if occupied > 0.2:
                         end_stage(game_state)
                     else:
                         game_state['current_turn'] += 1
