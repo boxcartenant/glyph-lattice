@@ -146,8 +146,8 @@ def calculate_shape(shape, prio, seed=None):
 def get_shape_curve(shape, prio):
     f, t_min, t_max = calculate_shape(shape, prio)
     ts = np.linspace(t_min, t_max, 100)
-    x_vals = [f(t)[0] for t in ts]
-    y_vals = [f(t)[1] for t in ts]
+    x_vals = [f(t)[1] for t in ts]
+    y_vals = [f(t)[0] for t in ts]
     return x_vals, y_vals
 
 def get_placements(owner, glyph_type, shape, dist, prio, board):
@@ -185,10 +185,10 @@ def get_placements(owner, glyph_type, shape, dist, prio, board):
 
 def resolve_collision(attacker_type, attacker_owner, defender_type, defender_owner, new_stones = False):
     if defender_type == 'wall':
-        return 'wall', None
+        return 'w', None
     if attacker_type == defender_type:
         if attacker_type == 'd':
-            return 'wall', None
+            return 'w', None
         if attacker_type == 'e':
             return None, None
         if attacker_type == 'f':
@@ -525,13 +525,13 @@ if page == 'Main':
                     # Get curve for shape
                     x_vals, y_vals = get_shape_curve(selected_shape, selected_prio)
                     fig, ax = plt.subplots(figsize=(4, 4))
-                    ax.plot(x_vals, [18 - y for y in y_vals], 'b-')
+                    ax.plot(x_vals, y_vals, 'b-')
                     ax.set_xlim(0, 18)
                     ax.set_ylim(0, 18)
                     ax.grid(True, which='both', linestyle='--', linewidth=0.5)
                     ax.set_xticks(range(19))
                     ax.set_yticks(range(19))
-                    ax.set_yticklabels([str(18 - tick) for tick in range(19)])
+                    ax.invert_yaxis()
                     ax.set_aspect('equal')
                     st.pyplot(fig)
                 if st.button('Commit'):
@@ -618,10 +618,10 @@ if page == 'Main':
                         # Now resolve with existing
                         if existing_type is not None:
                             collided = True
-                            nnew_type, nnew_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
-                            game_state['debug_log'].append(f"collision w existing: {current_type} {current_owner} {existing_type} {existing_owner}, result: {nnew_type} {nnew_owner}")
-                            current_type = nnew_type
-                            current_owner = nnew_owner
+                            new_type, new_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
+                            game_state['debug_log'].append(f"collision w existing: {current_type} {current_owner} {existing_type} {existing_owner}, result: {new_type} {new_owner}")
+                            current_type = new_type  # Fixed typo
+                            current_owner = new_owner
                         if current_type is None:
                             if existing_type == 'f' and (existing_type == 'f' or current_type == 'f'):  # Check for f collision with existing
                                 collided = True
