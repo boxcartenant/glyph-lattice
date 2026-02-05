@@ -482,10 +482,10 @@ if page == 'Main':
         hand_glyphs = [c for c in hand if c in glyph_cards]
         hand_shapes = [c for c in hand if c in shape_cards]
         hand_dists = [c for c in hand if c in dist_cards]
-        st.write('Hand:')
-        st.write('Glyphs:', hand_glyphs)
-        st.write('Shapes:', hand_shapes)
-        st.write('Dists:', hand_dists)
+        #st.write('Hand:')
+        #st.write('Glyphs:', hand_glyphs)
+        #st.write('Shapes:', hand_shapes)
+        #st.write('Dists:', hand_dists)
         selected_glyph = st.selectbox('Select Glyph', options=hand_glyphs, key='sel_glyph')
         if selected_glyph:
             glyph_shapes = glyphs[selected_glyph].get_unlocked_shapes()
@@ -495,7 +495,7 @@ if page == 'Main':
             available_dists = [d for d in hand_dists if d in glyph_dists]
             selected_dist = st.selectbox('Select Dist', options=available_dists, key='sel_dist')
             glyph_prios = glyphs[selected_glyph].get_unlocked_prios()
-            selected_prio = st.selectbox('Select Prio', options=glyph_prios, key='sel_prio')
+            selected_prio = st.selectbox('Select Priority', options=glyph_prios, key='sel_prio')
             game_state['selected_glyph'] = selected_glyph
             game_state['selected_shape'] = selected_shape
             game_state['selected_dist'] = selected_dist
