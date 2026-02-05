@@ -636,7 +636,7 @@ if page == 'Main':
             for i in range(19):
                 for j in range(19):
                     char = temp_board[i, j]
-                    class_name = 'player-cell' if char != '.' else ''
+                    class_name = 'player-cell' if char.isupper() else ''
                     cells_html += f'<div class="{class_name}">{char}</div>'
             st.markdown(grid_style, unsafe_allow_html=True)
             st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
@@ -648,7 +648,7 @@ if page == 'Main':
             for i in range(19):
                 for j in range(19):
                     char = temp_board[i, j]
-                    class_name = 'pc-cell' if char != '.' else ''
+                    class_name = 'pc-cell' if char.isupper else ''
                     cells_html += f'<div class="{class_name}">{char}</div>'
             st.markdown(grid_style, unsafe_allow_html=True)
             st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
