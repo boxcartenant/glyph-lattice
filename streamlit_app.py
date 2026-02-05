@@ -313,6 +313,7 @@ def end_stage(game_state):
     game_state['selected_shape'] = None
     game_state['selected_dist'] = None
     game_state['selected_prio'] = None
+    game_state['last_collisions'] = set()
 
 def get_region(start_x, start_y, board, owners, visited):
     region = []
@@ -390,6 +391,7 @@ if 'game_state' not in st.session_state:
         'pc_glyph_mode': 2,  # Default
         'pc_shape_mode_frac': 0.5,
         'pc_dist_mode_frac': 0.5,
+        'last_collisions': set(),
     }
 
 game_state = st.session_state.game_state
@@ -482,10 +484,10 @@ if page == 'Main':
         hand_glyphs = [c for c in hand if c in glyph_cards]
         hand_shapes = [c for c in hand if c in shape_cards]
         hand_dists = [c for c in hand if c in dist_cards]
-        #st.write('Hand:')
-        #st.write('Glyphs:', hand_glyphs)
-        #st.write('Shapes:', hand_shapes)
-        #st.write('Dists:', hand_dists)
+                          
+                                         
+                                         
+                                       
         selected_glyph = st.selectbox('Select Glyph', options=hand_glyphs, key='sel_glyph')
         if selected_glyph:
             glyph_shapes = glyphs[selected_glyph].get_unlocked_shapes()
@@ -566,14 +568,18 @@ if page == 'Main':
                         new_placements[tuple(p)].append(('player', selected_glyph))
                     for p in pc_positions:
                         new_placements[tuple(p)].append(('pc', pc_glyph))
+                    game_state['last_collisions'] = set()
                     for pos, incoming in new_placements.items():
                         x, y = pos
                         existing_type = board[y, x] if board[y, x] != '.' else None
                         existing_owner = owners[y, x]
+                        collided = False
                         # Resolve incoming first if multiple
                         current_type = None
                         current_owner = None
                         special_f = False
+                        if len(incoming) > 1:
+                            collided = True
                         if len(incoming) == 1:
                             current_owner, current_type = incoming[0]
                         else:
@@ -598,12 +604,16 @@ if page == 'Main':
                                         if 0 <= nx < 19 and 0 <= ny < 19 and board[ny, nx] == '.':
                                             board[ny, nx] = 'c'
                                             owners[ny, nx] = current_owner  # or random? Assume last attacker
+                                            game_state['last_collisions'].add((nx, ny))
+                                game_state['last_collisions'].add((x, y))
                             continue
                         # Now resolve with existing
                         if existing_type is not None:
+                            collided = True
                             current_type, current_owner = resolve_collision(current_type, current_owner, existing_type, existing_owner)
                         if current_type is None:
                             if existing_type == 'f' and (existing_type == 'f' or current_type == 'f'):  # Check for f collision with existing
+                                collided = True
                                 board[y, x] = '.'
                                 owners[y, x] = None
                                 for dx in range(-1, 2):
@@ -612,12 +622,16 @@ if page == 'Main':
                                         if 0 <= nx < 19 and 0 <= ny < 19 and board[ny, nx] == '.':
                                             board[ny, nx] = 'c'
                                             owners[ny, nx] = current_owner
+                                            game_state['last_collisions'].add((nx, ny))
+                                game_state['last_collisions'].add((x, y))
                             else:
                                 board[y, x] = '.'
                                 owners[y, x] = None
                         else:
                             board[y, x] = current_type
                             owners[y, x] = current_owner
+                        if collided:
+                            game_state['last_collisions'].add((x, y))
                     capture_groups(board, owners)
                     occupied = np.sum(board != '.') / 361
                     if occupied > 0.8:
@@ -636,7 +650,11 @@ if page == 'Main':
             for i in range(19):
                 for j in range(19):
                     char = temp_board[i, j]
-                    class_name = 'player-cell' if char.isupper() else ''
+                    class_name = ''
+                    if game_state['owners'][i,j] == 'pc' and not char.isupper():
+                        class_name = 'pc-cell'
+                    elif char.isupper() or game_state['owners'][i,j] == 'player':
+                        class_name = 'player-cell'
                     cells_html += f'<div class="{class_name}">{char}</div>'
             st.markdown(grid_style, unsafe_allow_html=True)
             st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
@@ -648,7 +666,29 @@ if page == 'Main':
             for i in range(19):
                 for j in range(19):
                     char = temp_board[i, j]
-                    class_name = 'pc-cell' if char.isupper() else ''
+                    class_name = ''
+                    if game_state['owners'][i,j] == 'player' and not char.isupper():
+                        class_name = 'player-cell'
+                    elif char.isupper() or game_state['owners'][i,j] == 'pc':
+                        class_name = 'pc-cell'
+                    cells_html += f'<div class="{class_name}">{char}</div>'
+            st.markdown(grid_style, unsafe_allow_html=True)
+            st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
+        if st.button('Show Collisions'):
+            temp_board = game_state['board'].copy()
+            for px, py in game_state['last_collisions']:
+                if temp_board[py, px] != '.':
+                    temp_board[py, px] = temp_board[py, px].upper()
+            cells_html = ""
+            for py in range(19):
+                for px in range(19):
+                    char = temp_board[py, px]
+                    owner = game_state['owners'][py, px]
+                    class_name = ''
+                    if owner == 'player':
+                        class_name = 'player-cell'
+                    elif owner == 'pc':
+                        class_name = 'pc-cell'
                     cells_html += f'<div class="{class_name}">{char}</div>'
             st.markdown(grid_style, unsafe_allow_html=True)
             st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
