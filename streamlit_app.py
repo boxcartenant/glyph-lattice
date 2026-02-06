@@ -40,7 +40,7 @@ possible_upgrades = {
 }
 
 class TechTree:
-    def __init__(self):
+    def __init__(self, unlock_all=False):
         self.trees = {
             'shape': {
                 'linear': ['cardinal'],  # default
@@ -72,6 +72,11 @@ class TechTree:
                 'passover': [],
             },
         }
+        if unlock_all:
+            for root in self.trees:
+                for branch in self.trees[root]:
+                    if root in possible_upgrades and branch in possible_upgrades[root]:
+                        self.trees[root][branch].extend(possible_upgrades[root][branch])
 
     def get_unlocked_shapes(self):
         return [u for b in self.trees['shape'].values() for u in b]
@@ -276,10 +281,12 @@ def end_stage(game_state):
     visited = np.zeros((19, 19), dtype=bool)
     player_territory = 0
     pc_territory = 0
-    territory_board = board.copy()
-    territory_owners = owners.copy()
+    territory_board = np.full((19, 19), '.', dtype='<U1')
+    territory_owners = np.full((19, 19), None, dtype=object)
     for i in range(19):
         for j in range(19):
+            if board[i, j] == 'w':
+                territory_board[i, j] = 'w'
             if board[i, j] == '.' and not visited[i, j]:
                 region, border_owners = get_region(i, j, board, owners, visited)
                 if len(region) > 49:
@@ -402,7 +409,7 @@ if 'game_state' not in st.session_state:
         'coin': 0,
         'board': np.full((19, 19), '.', dtype='<U1'),
         'owners': np.full((19, 19), None, dtype=object),
-        'glyphs': {g: TechTree() for g in 'abcdef'},
+        'glyphs': {g: TechTree(unlock_all=True) for g in 'abcdef'},
         'pc_glyphs': {g: TechTree() for g in 'abcdef'},
         'game_seed': random.randint(0, 10**6),
         'stage_seed': None,
