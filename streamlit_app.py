@@ -192,7 +192,7 @@ def resolve_collision(attacker_type, attacker_owner, defender_type, defender_own
         if attacker_type == 'e':
             return None, None
         if attacker_type == 'f':
-            return None, None  # special handled outside
+            return None, attacker_owner  # special handled outside
         if new_stones:
             return None, None
         # For other same types, keep defender
@@ -721,7 +721,7 @@ if page == 'Main':
                                         nx, ny = x + dx, y + dy
                                         if 0 <= nx < 19 and 0 <= ny < 19 and board[ny, nx] == '.':
                                             board[ny, nx] = 'c'
-                                            owners[ny, nx] = explosion_owner  # Use attacker_owner for f + f
+                                            owners[ny, nx] = attacker_owner  # Use attacker_owner for f + f
                                             game_state['last_collisions'].add((nx, ny))
                                 game_state['last_collisions'].add((x, y))
                             continue
