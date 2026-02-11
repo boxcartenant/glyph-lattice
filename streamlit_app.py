@@ -39,6 +39,26 @@ possible_upgrades = {
     },
 }
 
+# Implemented upgrades (only those with actual code logic)
+implemented_upgrades = {
+    'shape': {
+        'linear': ['cardinal'],
+        'trig': ['sine', 'cosine'],  # Assuming placeholders are implemented
+    },
+    'distribution': {
+        'random': ['random'],
+    },
+    'coordinate': {
+        'cartesian': ['basic'],
+    },
+    'prioritization': {
+        'fixed': ['N', 'S', 'E', 'W'],
+    },
+    'collision': {
+        'basic': ['basic'],
+    },
+}
+
 class TechTree:
     def __init__(self, unlock_all=False):
         self.trees = {
@@ -75,8 +95,8 @@ class TechTree:
         if unlock_all:
             for root in self.trees:
                 for branch in self.trees[root]:
-                    if root in possible_upgrades and branch in possible_upgrades[root]:
-                        self.trees[root][branch].extend(possible_upgrades[root][branch])
+                    if root in implemented_upgrades and branch in implemented_upgrades[root]:
+                        self.trees[root][branch].extend(implemented_upgrades[root][branch])
 
     def get_unlocked_shapes(self):
         return [u for b in self.trees['shape'].values() for u in b]
@@ -281,15 +301,7 @@ def end_stage(game_state):
     visited = np.zeros((19, 19), dtype=bool)
     player_territory = 0
     pc_territory = 0
-    territory_board = np.full((19, 19), '.', dtype='<U1')
-    territory_owners = np.full((19, 19), None, dtype=object)
-    for i in range(19):
-        for j in range(19):
-            if board[i, j] == 'w':
-                territory_board[i, j] = 'w'
-            if board[i, j] == '.' and not visited[i, j]:
-                region, border_owners = get_region(i, j, board, owners, visited)
-                if len(region) > 49:
+    territory_board = np.full((19, 19), '.', dtype=' 49:
                     continue
                 unique_borders = set(border_owners)
                 if len(unique_borders) == 1 and is_enclosed(region):
@@ -335,112 +347,22 @@ def end_stage(game_state):
         game_state['losses'] += 1
     game_state['coin'] = coin
     game_state['stage_started'] = False
-    game_state['board'] = np.full((19, 19), '.', dtype='<U1')
-    game_state['owners'] = np.full((19, 19), None, dtype=object)
-    game_state['hand'] = None
-    game_state['current_turn'] = 0
-    game_state['pre_collision_player'] = None
-    game_state['pre_collision_pc'] = None
-    game_state['pre_collision_pc_glyph'] = None
-    game_state['pre_collision_player_glyph'] = None
-    game_state['selected_glyph'] = None
-    game_state['selected_shape'] = None
-    game_state['selected_dist'] = None
-    game_state['selected_prio'] = None
-    game_state['last_collisions'] = set()
-    game_state['player_captured'] = 0
-    game_state['pc_captured'] = 0
+    game_state['board'] = np.full((19, 19), '.', dtype='
+        document.cookie = "game_state={json_str}; path=/";
+        
+        """,
+        height=0,
+    )
 
-def get_region(start_x, start_y, board, owners, visited):
-    region = []
-    border_owners = []
-    stack = [(start_x, start_y)]
-    visited[start_x, start_y] = True
-    while stack:
-        x, y = stack.pop()
-        region.append((x, y))
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < 19 and 0 <= ny < 19:
-                if board[nx, ny] == '.' and not visited[nx, ny]:
-                    visited[nx, ny] = True
-                    stack.append((nx, ny))
-                elif board[nx, ny] != '.':
-                    border_owners.append(owners[nx, ny])
-    return region, border_owners
+# Function to load game state from cookie
+def load_state_from_cookie():
+    cookie = st.experimental_get_query_params().get('cookie', [None])[0]
+    if cookie:
+        loaded_state = json.loads(cookie)
+        st.session_state.game_state = loaded_state
 
-def is_enclosed(region):
-    for x, y in region:
-        if x == 0 or x == 18 or y == 0 or y == 18:
-            return False
-    return True
-
-def start_stage(game_state):
-    game_state['stage_started'] = True
-    stage = game_state['stage']
-    game_seed = game_state['game_seed']
-    stage_seed_str = str(game_seed) + str(stage)
-    stage_seed = int(hashlib.sha256(stage_seed_str.encode()).hexdigest(), 16) % 10**10
-    game_state['stage_seed'] = stage_seed
-    random.seed(stage_seed)
-    # Copy player's tech trees
-    pc_glyphs = {g: copy.deepcopy(game_state['glyphs'][g]) for g in 'abcdef'}
-    # Add extra random upgrades
-    num_upgrades = 5 + (stage // 5)
-    for _ in range(num_upgrades):
-        glyph = random.choice(list('abcdef'))
-        root = random.choice(list(pc_glyphs[glyph].trees.keys()))
-        branch = random.choice(list(pc_glyphs[glyph].trees[root].keys()))
-        available = pc_glyphs[glyph].get_available_upgrades(root, branch)
-        if available:
-            upgrade = random.choice(available)
-            pc_glyphs[glyph].trees[root][branch].append(upgrade)
-    game_state['pc_glyphs'] = pc_glyphs  # Save pc_glyphs in state
-    # Set PC flavor biases
-    game_state['pc_glyph_mode'] = random.randint(0, 5)
-    game_state['pc_shape_mode_frac'] = random.uniform(0, 1)
-    game_state['pc_dist_mode_frac'] = random.uniform(0, 1)
-
-# Main app
-if 'game_state' not in st.session_state:
-    st.session_state.game_state = {
-        'stage': 1,
-        'losses': 0,
-        'coin': 0,
-        'board': np.full((19, 19), '.', dtype='<U1'),
-        'owners': np.full((19, 19), None, dtype=object),
-        'glyphs': {g: TechTree(unlock_all=True) for g in 'abcdef'},
-        'pc_glyphs': {g: TechTree() for g in 'abcdef'},
-        'game_seed': random.randint(0, 10**6),
-        'stage_seed': None,
-        'current_turn': 0,
-        'stage_started': False,
-        'hand': None,
-        'selected_glyph': None,
-        'selected_shape': None,
-        'selected_dist': None,
-        'selected_prio': None,
-        'pre_collision_player': None,
-        'pre_collision_pc': None,
-        'pre_collision_pc_glyph': None,
-        'pre_collision_player_glyph': None,
-        'upgrade_options': None,
-        'pc_glyph_mode': 2,  # Default
-        'pc_shape_mode_frac': 0.5,
-        'pc_dist_mode_frac': 0.5,
-        'last_collisions': set(),
-        'debug_log': [],  # Add this for debug messages
-        'player_captured': 0,
-        'pc_captured': 0,
-        'final_board': None,
-        'final_owners': None,
-        'final_territory_board': None,
-        'final_territory_owners': None,
-        'player_territory': 0,
-        'pc_territory': 0,
-        'player_score': 0,
-        'pc_score': 0,
-    }
+# Load from cookie on init
+load_state_from_cookie()
 
 game_state = st.session_state.game_state
 
@@ -454,63 +376,27 @@ with st.sidebar:
     if upload:
         loaded_state = json.load(upload)
         st.session_state.game_state = loaded_state
+        save_state_to_cookie()
         st.rerun()
-
-if page == 'Main':
-    # Render board with colors
-    cells_html = ""
-    for py in range(19):
-        for px in range(19):
-            char = game_state['board'][py, px]
-            owner = game_state['owners'][py, px]
-            class_name = ''
-            if owner == 'player':
-                class_name = 'player-cell'
-            elif owner == 'pc':
-                class_name = 'pc-cell'
-            cells_html += f'<div class="{class_name}">{char}</div>'
+    if st.button('Clear Cookie / Restart Game'):
+        st.components.v1.html(
+            """
+            
+            """,
+            height=0,
+        )
+        st.session_state.game_state = {
+            'stage': 1,
+            'losses': 0,
+            'coin': 0,
+            'board': np.full((19, 19), '.', dtype='{char}'
     # Styling with colors
     grid_style = """
-    <style>
-        .game-board {
-            display: grid;
-            grid-template-columns: repeat(19, 1fr);
-            width: 80%;
-            max-width: 300px; /* Adjust based on your preference */
-            aspect-ratio: 1 / 1;
-            border: 1px solid #333;
-            margin: 10px 0;
-        }
-        .game-board div {
-            aspect-ratio: 1 / 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 0;
-            font-family: 'Courier New', monospace;
-            border: 0.5px solid rgba(0,0,0,0.1); /* Subtle grid lines */
-            font-size: 1.2rem;
-        }
-        .player-cell {
-            color: LightGreen;
-        }
-        .pc-cell {
-            color: SandyBrown;
-        }
-        .player-territory {
-            color: LightBlue;
-        }
-        .pc-territory {
-            color: LightCoral;
-        }
-        .wall-cell {
-            color: gray;
-        }
-    </style>
+    
     """
     # Render
     st.markdown(grid_style, unsafe_allow_html=True)
-    st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
+    st.markdown(f'{cells_html}', unsafe_allow_html=True)
     
     if not game_state['stage_started']:
         if 'final_board' in game_state and game_state['final_board'] is not None:
@@ -528,8 +414,10 @@ if page == 'Main':
                         class_name = 'player-cell'
                     elif owner == 'pc':
                         class_name = 'pc-cell'
-                    final_cells_html += f'<div class="{class_name}">{char}</div>'
-            st.markdown(f'<div class="game-board">{final_cells_html}</div>', unsafe_allow_html=True)
+                    final_cells_html += f'
+{char}
+'
+            st.markdown(f'{final_cells_html}', unsafe_allow_html=True)
 
             # Territory map
             st.write("Territory Map (X for scored territory, . and w for unscored/wall):")
@@ -545,8 +433,10 @@ if page == 'Main':
                         class_name = 'pc-territory'
                     elif char == 'w':
                         class_name = 'wall-cell'
-                    territory_cells_html += f'<div class="{class_name}">{char}</div>'
-            st.markdown(f'<div class="game-board">{territory_cells_html}</div>', unsafe_allow_html=True)
+                    territory_cells_html += f'
+{char}
+'
+            st.markdown(f'{territory_cells_html}', unsafe_allow_html=True)
 
             # Captured stones
             st.write(f"Player captured stones: {game_state['pc_captured']}")
@@ -575,15 +465,18 @@ if page == 'Main':
                 game_state['player_score'] = 0
                 game_state['pc_score'] = 0
                 start_stage(game_state)
+                save_state_to_cookie()
                 st.rerun()
         else:
             if st.button('Start Next Stage'):
                 start_stage(game_state)
+                save_state_to_cookie()
                 st.rerun()
         if game_state['losses'] == 5:
             if st.button('Change Seed'):
                 game_state['stage_seed'] = random.randint(0, 10**10)
                 game_state['losses'] = 0
+                save_state_to_cookie()
                 st.rerun()
     else:
         glyphs = game_state['glyphs']
@@ -634,9 +527,11 @@ if page == 'Main':
                                 class_name = 'pc-cell'
                             elif char.isupper() or game_state['owners'][i,j] == 'player':
                                 class_name = 'player-cell'
-                            cells_html += f'<div class="{class_name}">{char}</div>'
+                            cells_html += f'
+{char}
+'
                     st.markdown(grid_style, unsafe_allow_html=True)
-                    st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
+                    st.markdown(f'{cells_html}', unsafe_allow_html=True)
                 if st.button('Preview Graph'):
                     # Get curve for shape
                     x_vals, y_vals = get_shape_curve(selected_shape, selected_prio)
@@ -767,6 +662,7 @@ if page == 'Main':
                     else:
                         game_state['current_turn'] += 1
                         game_state['hand'] = None
+                    save_state_to_cookie()
                     st.rerun()
     # Buttons for pre/post views
     if game_state['pre_collision_player']:
@@ -783,9 +679,11 @@ if page == 'Main':
                         class_name = 'pc-cell'
                     elif char.isupper() or game_state['owners'][i,j] == 'player':
                         class_name = 'player-cell'
-                    cells_html += f'<div class="{class_name}">{char}</div>'
+                    cells_html += f'
+{char}
+'
             st.markdown(grid_style, unsafe_allow_html=True)
-            st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
+            st.markdown(f'{cells_html}', unsafe_allow_html=True)
         if st.button('Show PC Pre-Collision'):
             temp_board = game_state['board'].copy()
             for px, py in game_state['pre_collision_pc']:
@@ -799,9 +697,11 @@ if page == 'Main':
                         class_name = 'player-cell'
                     elif char.isupper() or game_state['owners'][i,j] == 'pc':
                         class_name = 'pc-cell'
-                    cells_html += f'<div class="{class_name}">{char}</div>'
+                    cells_html += f'
+{char}
+'
             st.markdown(grid_style, unsafe_allow_html=True)
-            st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
+            st.markdown(f'{cells_html}', unsafe_allow_html=True)
         if st.button('Show Collisions'):
             temp_board = game_state['board'].copy()
             for px, py in game_state['last_collisions']:
@@ -817,9 +717,11 @@ if page == 'Main':
                         class_name = 'player-cell'
                     elif owner == 'pc':
                         class_name = 'pc-cell'
-                    cells_html += f'<div class="{class_name}">{char}</div>'
+                    cells_html += f'
+{char}
+'
             st.markdown(grid_style, unsafe_allow_html=True)
-            st.markdown(f'<div class="game-board">{cells_html}</div>', unsafe_allow_html=True)
+            st.markdown(f'{cells_html}', unsafe_allow_html=True)
 
     # Display debug log
     if game_state['debug_log']:
@@ -860,6 +762,7 @@ elif page == 'Tech Tree':
                     'downside': downside
                 })
             game_state['upgrade_options'] = options
+            save_state_to_cookie()
             st.rerun()
     else:
         st.write("Select one upgrade option:")
@@ -874,6 +777,7 @@ elif page == 'Tech Tree':
                     d_g, d_r, d_b, d_u = opt['downside']
                     glyphs[d_g].trees[d_r][d_b].remove(d_u)
                 game_state['upgrade_options'] = None
+                save_state_to_cookie()
                 st.rerun()
 
     # New interactive tech tree UI
