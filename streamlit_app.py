@@ -301,7 +301,7 @@ def end_stage(game_state):
     visited = np.zeros((19, 19), dtype=bool)
     player_territory = 0
     pc_territory = 0
-    territory_board = np.full((19, 19), '.', dtype=' 49:
+    territory_board = np.full((19, 19), '.', dtype=object):
                     continue
                 unique_borders = set(border_owners)
                 if len(unique_borders) == 1 and is_enclosed(region):
